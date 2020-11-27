@@ -35,8 +35,9 @@ function App() {
                 //@ts-ignore
                 const GoogleAuth = gapi.auth2.getAuthInstance();
                 GoogleAuth.isSignedIn.listen(updateSigninStatus);
+                debugger;
                 //@ts-ignore
-                updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+                updateSigninStatus(GoogleAuth.isSignedIn.get());
                 setGoogleAuth(GoogleAuth);
               },
               () => {
@@ -55,6 +56,8 @@ function App() {
   function updateSigninStatus(isSignedIn: boolean) {
     setLoading(false);
     if (isSignedIn) {
+      debugger;
+      console.log(GoogleAuth);
       setIsAuthorized(true);
     } else {
       setIsAuthorized(false);

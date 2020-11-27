@@ -6,14 +6,16 @@ export enum GMAIL_REDUCER_TYPE {
   SET_LABELS,
   SET_CURRENT_CONTACT,
   SET_MESSAGE_MODEL_SHOW,
+  SET_USER_EMAIL,
 }
 
 export interface GmailReducerInterface {
-  messages: Array<any>;
+  cache: Array<{ email: string; nextPageToken: string; messages: Array<string> }>;
   nextPageToken: string;
   currentLabel: string;
   labels: string[];
   currentContact: string;
+  userEmail: string;
   messageShowModel: 'snippet' | 'complete';
 }
 
@@ -40,9 +42,16 @@ export const GmailReducer = (state: GmailReducerInterface, action: { type: GMAIL
       break;
     }
 
-    case GMAIL_REDUCER_TYPE.SET_CURRENT_CONTACT: {
+    case GMAIL_REDUCER_TYPE.SET_MESSAGE_MODEL_SHOW: {
       if (typeof action.payload.messageShowModel === 'string') {
         return { ...state, messageShowModel: action.payload.messageShowModel };
+      }
+      break;
+    }
+
+    case GMAIL_REDUCER_TYPE.SET_USER_EMAIL: {
+      if (typeof action.payload.userEmail === 'string') {
+        return { ...state, userEmail: action.payload.userEmail };
       }
       break;
     }

@@ -1,4 +1,4 @@
-import { Alert, Button, Col, Form, Input, Menu, Modal, Row, Select, Tag } from 'antd';
+import { Alert, Button, Col, Form, Input, Menu, message, Modal, Row, Select, Tag } from 'antd';
 import React, { useCallback, useEffect, useReducer, useState } from 'react';
 import { GmailReducer, GmailReducerInterface, GMAIL_REDUCER_TYPE } from '../reducer/gmailReducer';
 import AddIcon from '@material-ui/icons/Add';
@@ -13,25 +13,27 @@ interface Contact {
 
 const Gmail: React.FC<GmailInterface> = (props) => {
   const initialReducerValue: GmailReducerInterface = {
-    currentLabel: 'INBOX',
+    currentLabel: 'ALL',
     nextPageToken: '',
-    messages: [],
+    cache: [],
     labels: [],
     currentContact: '',
     messageShowModel: 'snippet',
+    userEmail: '',
   };
 
   const [state, dispatch] = useReducer(GmailReducer, initialReducerValue);
-  const [contacts, setContacts] = useState<Array<Contact>>(
-    new Array(20).fill({ kickname: 'hfouad', email: 'hachour5fouad@gmail.com' }).map((e) => ({
+  const [contacts, setContacts] = useState<Array<Contact>>([
+    { email: 'mboumediene@inttic.dz', kickname: 'Mohamed' },
+    ...new Array(20).fill({ kickname: 'hfouad', email: 'hachour5fouad@gmail.com' }).map((e) => ({
       ...e,
       email:
         new Array(10)
           .fill('')
           .map((e) => String.fromCharCode(Math.random() * 25 + 97))
           .join('') + '@gmail.com',
-    }))
-  );
+    })),
+  ]);
   const [contactAdd, setContactAdd] = useState<{ addContact: boolean; errorAdding: boolean; errorContent: string; contact: Partial<Contact> }>({
     addContact: false,
     errorAdding: false,
@@ -43,6 +45,7 @@ const Gmail: React.FC<GmailInterface> = (props) => {
     selectedLabel: state.currentLabel,
     messageShowModel: 'snippet',
   });
+  const [messages, setMessages] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,6 +53,11 @@ const Gmail: React.FC<GmailInterface> = (props) => {
     const request = gapi.client.gmail.users.labels.list({
       userId: 'me',
     });
+    //@ts-ignore
+    const profileRequest = gapi.client.gmail.users.getProfile({
+      userId: 'me',
+    });
+
     request.execute((response: any) => {
       console.log(response);
       dispatch({
@@ -57,7 +65,68 @@ const Gmail: React.FC<GmailInterface> = (props) => {
         payload: { labels: ['ALL', ...response.result.labels.map((e: any) => e.id)] },
       });
     });
+
+    profileRequest.execute((response: any) => {
+      console.log(response);
+      dispatch({
+        type: GMAIL_REDUCER_TYPE.SET_USER_EMAIL,
+        payload: { userEmail: response.result.emailAddress },
+      });
+    });
   }, []);
+
+  useEffect(() => {
+    if (state.currentContact === '') {
+      setMessages([]);
+    } else {
+      const contact = state.cache.find((contact) => state.currentContact === contact.email);
+      if (contact) {
+        setMessages(contact.messages);
+      } else {
+        console.log(`from:${state.currentContact} OR to:${state.currentContact}`);
+        //@ts-ignore
+        const request = gapi.client.gmail.users.messages.list({
+          userId: 'me',
+          labelIds: state.currentLabel === 'ALL' ? void 0 : state.currentLabel,
+          maxResults: 200,
+          q: `from:${state.currentContact} OR to:${state.currentContact}`,
+        });
+
+        request.execute((res: any) => {
+          console.log('Messages   ', res);
+          const func = async () => {
+            const messages: any = [];
+            for (const message of res.result.messages) {
+              //@ts-ignore
+              const request = await gapi.client.gmail.users.messages.get({
+                userId: 'me',
+                id: message.id,
+                format: 'full',
+              });
+              messages.push(request.result);
+              console.log(request.result, messages.length);
+
+              // await request.execute((res: any) => {
+              //   console.log(res);
+              // });
+            }
+            console.log('Set messages....');
+            setMessages(messages);
+          };
+          if (res.error === void 0) {
+            if (res.result.resultSizeEstimate > 0) {
+              func();
+            } else {
+              // no message in  discussion
+              setMessages([]);
+            }
+          } else {
+            // show error message by using res.result.message
+          }
+        });
+      }
+    }
+  }, [state.currentContact, state.currentLabel]);
 
   const selectContact = useCallback((email: string) => {
     dispatch({
@@ -87,7 +156,7 @@ const Gmail: React.FC<GmailInterface> = (props) => {
     (event: React.MouseEvent<HTMLElement, MouseEvent>) => {
       event.stopPropagation();
       if (typeof contactAdd.contact.email === 'string' && contactAdd.contact.email !== '') {
-        if (/^[a-zA-Z0-9]+@[a-z]+\.[a-z]+$/.test(contactAdd.contact.email as string)) {
+        if (/^[a-zA-Z0-9\.\-]+@[a-z]+\.[a-z]+$/.test(contactAdd.contact.email as string)) {
           if (contacts.findIndex((contact) => contact.email === contactAdd.contact.email) === -1) {
             setContacts((state) => [...state, { ...(contactAdd.contact as Contact) }]);
             console.log();
@@ -192,7 +261,44 @@ const Gmail: React.FC<GmailInterface> = (props) => {
                   </Col>
                 </Row>
               </Col>
-              <Col span={19} className="right-side"></Col>
+              <Col span={19} className="right-side">
+                <Row className="result">
+                  {state.currentContact === '' && (
+                    <Col span={24} className="no-selected-contact">
+                      No Contact Selected Yet!
+                    </Col>
+                  )}
+                  {messages.map((message) => {
+                    const sameUser = message.payload.headers.find((header: any) => header.name === 'From').value.indexOf(state.userEmail) !== -1;
+                    const subject = message.payload.headers.find((header: any) => header.name === 'Subject').value;
+                    console.log(subject);
+                    if (state.messageShowModel === 'snippet') {
+                      return (
+                        <Col span={24} key={message.id}>
+                          <Row>
+                            <Col span={16} offset={sameUser ? 8 : 0} className="message">
+                              <Row>
+                                <Col span={24} className="tags">
+                                  <Tag color="green">Subject: {subject}</Tag>
+                                </Col>
+                                <Col span={24} className="message-content">
+                                  {message.snippet}
+                                </Col>
+                              </Row>
+                            </Col>
+                          </Row>
+                        </Col>
+                      );
+                    } else {
+                      return (
+                        <Col span={24}>
+                          <Row></Row>
+                        </Col>
+                      );
+                    }
+                  })}
+                </Row>
+              </Col>
             </Row>
           </Col>
         </Row>
