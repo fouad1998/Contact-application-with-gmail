@@ -1,0 +1,51 @@
+export enum GMAIL_REDUCER_TYPE {
+  SET_MESSAGES_ID,
+  SET_MESSAGES_CONTENT,
+  SET_MESSAGES,
+  SET_CURRENT_LABEL,
+  SET_LABELS,
+  SET_CURRENT_CONTACT,
+  SET_MESSAGE_MODEL_SHOW,
+}
+
+export interface GmailReducerInterface {
+  messages: Array<any>;
+  nextPageToken: string;
+  currentLabel: string;
+  labels: string[];
+  currentContact: string;
+  messageShowModel: 'snippet' | 'complete';
+}
+
+export const GmailReducer = (state: GmailReducerInterface, action: { type: GMAIL_REDUCER_TYPE; payload: Partial<GmailReducerInterface> }) => {
+  switch (action.type) {
+    case GMAIL_REDUCER_TYPE.SET_CURRENT_LABEL: {
+      if (typeof action.payload.currentLabel === 'string') {
+        return { ...state, currentLabel: action.payload.currentLabel };
+      }
+      break;
+    }
+
+    case GMAIL_REDUCER_TYPE.SET_LABELS: {
+      if (typeof action.payload.labels === 'object' && Array.isArray(action.payload.labels)) {
+        return { ...state, labels: action.payload.labels };
+      }
+      break;
+    }
+
+    case GMAIL_REDUCER_TYPE.SET_CURRENT_CONTACT: {
+      if (typeof action.payload.currentContact === 'string') {
+        return { ...state, currentContact: action.payload.currentContact };
+      }
+      break;
+    }
+
+    case GMAIL_REDUCER_TYPE.SET_CURRENT_CONTACT: {
+      if (typeof action.payload.messageShowModel === 'string') {
+        return { ...state, messageShowModel: action.payload.messageShowModel };
+      }
+      break;
+    }
+  }
+  return state;
+};

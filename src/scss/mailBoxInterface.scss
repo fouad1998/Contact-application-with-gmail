@@ -1,0 +1,105 @@
+.gmail-interface {
+  height: calc(100vh - 65px);
+  max-height: calc(100vh - 65px);
+  min-height: calc(100vh - 65px);
+
+  & .inherit-height {
+    height: inherit;
+  }
+
+  & .application {
+    flex-wrap: nowrap;
+
+    .left-side {
+      height: inherit;
+      max-height: inherit;
+      min-height: inherit;
+      min-width: 300px;
+      background-color: white;
+      flex-shrink: 0;
+      flex-grow: 0;
+
+      & .title {
+        height: 50px;
+        font-size: medium;
+        flex-shrink: 0;
+        flex-grow: 0;
+        & h3 {
+          margin: 0;
+          padding: 0;
+        }
+      }
+
+      & .contacts {
+        padding: 10px 0px;
+        overflow: hidden;
+        overflow-y: auto;
+        height: calc(100vh - 163px);
+
+        & .item {
+          font-size: normal;
+          font-weight: 600;
+          padding: 10px;
+
+          &.active {
+            background: rgb(7, 144, 235);
+          }
+
+          &,
+          & * {
+            cursor: pointer;
+          }
+          &:hover {
+            background: rgb(7, 200, 235);
+          }
+        }
+      }
+
+      & .controls {
+        height: 30px;
+        align-self: flex-end;
+        padding: 10px 0px;
+        border-top: 1px solid rgb(185, 185, 185);
+
+        & .contacts-number {
+          display: flex;
+          font-weight: bold;
+          font-size: smaller;
+          justify-content: center;
+          text-transform: uppercase;
+          align-items: center;
+          & .tag {
+            margin: 0 5px;
+          }
+        }
+
+        & .controllers {
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          padding: 0 5px;
+
+          & button {
+            border: none !important;
+            padding: 0;
+            margin: 0 5px;
+          }
+        }
+      }
+    }
+
+    .right-side {
+      height: inherit;
+      flex-shrink: 1;
+      flex-grow: 1;
+      background-color: white;
+      border-left: 1px solid rgb(139, 139, 139);
+    }
+  }
+}
+
+.add-contact-modal {
+  & .section {
+    margin: 5px 0;
+  }
+}
