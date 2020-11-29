@@ -1,8 +1,14 @@
 import { Alert, Button, Col, Form, Input, Menu, message, Modal, Row, Select, Tag } from 'antd';
-import React, { useCallback, useEffect, useReducer, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useReducer, useState } from 'react';
 import { GmailReducer, GmailReducerInterface, GMAIL_REDUCER_TYPE } from '../reducer/gmailReducer';
 import AddIcon from '@material-ui/icons/Add';
 import SettingsIcon from '@material-ui/icons/Settings';
+import { Editor } from '../context/CreateEditorContext';
+import { Editable, ReactEditor, Slate } from 'slate-react';
+import { TextAreaChat } from './Inputs/TextareaChat';
+import { Base64 } from 'js-base64';
+import { Loader } from './Loader/Loader';
+import Avatar from 'antd/lib/avatar/avatar';
 
 interface GmailInterface {}
 
@@ -20,6 +26,8 @@ const Gmail: React.FC<GmailInterface> = (props) => {
     currentContact: '',
     messageShowModel: 'snippet',
     userEmail: '',
+    editor: 'simple',
+    messageThread: 'new thread',
   };
 
   const [state, dispatch] = useReducer(GmailReducer, initialReducerValue);
@@ -44,9 +52,12 @@ const Gmail: React.FC<GmailInterface> = (props) => {
     showSettings: false,
     selectedLabel: state.currentLabel,
     messageShowModel: 'snippet',
+    editor: 'simple',
+    messageThread: 'new thread',
   });
   const [messages, setMessages] = useState<Array<any>>([]);
-  const [loading, setLoading] = useState(true);
+  const [editorCompleteContent, setEditorCompleteContent] = useState<Array<any>>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     //@ts-ignore
@@ -83,7 +94,7 @@ const Gmail: React.FC<GmailInterface> = (props) => {
       if (contact) {
         setMessages(contact.messages);
       } else {
-        console.log(`from:${state.currentContact} OR to:${state.currentContact}`);
+        setLoading(true);
         //@ts-ignore
         const request = gapi.client.gmail.users.messages.list({
           userId: 'me',
@@ -110,8 +121,8 @@ const Gmail: React.FC<GmailInterface> = (props) => {
               //   console.log(res);
               // });
             }
-            console.log('Set messages....');
-            setMessages(messages);
+            setLoading(false);
+            setMessages(messages.reverse());
           };
           if (res.error === void 0) {
             if (res.result.resultSizeEstimate > 0) {
@@ -119,14 +130,78 @@ const Gmail: React.FC<GmailInterface> = (props) => {
             } else {
               // no message in  discussion
               setMessages([]);
+              setLoading(false);
             }
           } else {
             // show error message by using res.result.message
+            setLoading(false);
           }
         });
       }
     }
   }, [state.currentContact, state.currentLabel]);
+
+  const getMessageBodyAsHTML = (message: any) => {
+    const encodedBody =
+      message.payload.parts === void 0
+        ? message.payload.body.data
+        : message.payload.parts.find((part: any) => part.mimeType === 'text/html')?.body?.data;
+    const decode = Base64.decode(encodedBody || '');
+    console.log('ee ', decode, encodedBody);
+    return decode;
+  };
+
+  const getMessageBodyAsText = (message: any) => {
+    const encodedBody =
+      message.payload.parts === void 0
+        ? message.payload.body.data
+        : message.payload.parts.find((part: any) => part.mimeType === 'text/plain')?.body?.data;
+    const decode = Base64.decode(encodedBody || '');
+
+    const to = message.payload.headers.find((header: any) => header.name === 'To').value.replace(/.+<(.+)>/, '$1');
+    const index = decode.indexOf(`<${to}>`);
+    const cleanText =
+      index > -1
+        ? decode.substring(0, index)
+        : decode
+            .split('\n')
+            .filter((line) => line[0] !== '>' && line[0] !== '>')
+            .join('\n');
+    console.log('ee ', cleanText, to, message.snippet);
+    return cleanText;
+  };
+
+  const editor = useContext(Editor);
+
+  const sendMessage = useCallback(
+    (content: string, headers = { From: state.userEmail, To: state.currentContact, Subject: '' }) => {
+      if (content !== '' && !/^\s+$/.test(content)) {
+        let email = '';
+
+        for (const header in headers) {
+          email += `${header}: ${headers[header]}\r\n`;
+        }
+
+        email += `\r\n${content}`;
+
+        const base64EncodedEmail = Base64.encodeURI(email);
+        console.log(email, base64EncodedEmail);
+        //@ts-ignore
+        window.gapi.client.gmail.users.messages
+          .send({
+            userId: 'me',
+            resource: {
+              raw: base64EncodedEmail,
+            },
+          })
+          .then(
+            (e: any) => console.log('send', e),
+            (e: any) => console.error('error, ', e)
+          );
+      }
+    },
+    [state.currentContact, state.userEmail]
+  );
 
   const selectContact = useCallback((email: string) => {
     dispatch({
@@ -156,10 +231,9 @@ const Gmail: React.FC<GmailInterface> = (props) => {
     (event: React.MouseEvent<HTMLElement, MouseEvent>) => {
       event.stopPropagation();
       if (typeof contactAdd.contact.email === 'string' && contactAdd.contact.email !== '') {
-        if (/^[a-zA-Z0-9\.\-]+@[a-z]+\.[a-z]+$/.test(contactAdd.contact.email as string)) {
+        if (/^[a-zA-Z0-9\.\-]+@[a-zA-Z0-9]+\.[a-z]+$/.test(contactAdd.contact.email as string)) {
           if (contacts.findIndex((contact) => contact.email === contactAdd.contact.email) === -1) {
             setContacts((state) => [...state, { ...(contactAdd.contact as Contact) }]);
-            console.log();
             setContactAdd({
               errorAdding: false,
               addContact: false,
@@ -189,6 +263,8 @@ const Gmail: React.FC<GmailInterface> = (props) => {
       selectedLabel: state.currentLabel,
       showSettings: true,
       messageShowModel: state.messageShowModel,
+      editor: state.editor,
+      messageThread: state.messageThread,
     });
   }, [state]);
 
@@ -198,6 +274,14 @@ const Gmail: React.FC<GmailInterface> = (props) => {
 
   const settingsMessageModelChangeHandler = useCallback((model: string) => {
     setSettings((state) => ({ ...state, messageShowModel: model }));
+  }, []);
+
+  const settingsEditorTypeChangeHandler = useCallback((editorType: string) => {
+    setSettings((state) => ({ ...state, editor: editorType }));
+  }, []);
+
+  const settingsMessageThreadChangeHandler = useCallback((thread: string) => {
+    setSettings((state) => ({ ...state, messageThread: thread }));
   }, []);
 
   const settingsCancelHandler = useCallback(() => {
@@ -262,41 +346,94 @@ const Gmail: React.FC<GmailInterface> = (props) => {
                 </Row>
               </Col>
               <Col span={19} className="right-side">
-                <Row className="result">
+                <Row className="message-info">
+                  {/** No selected contact */}
                   {state.currentContact === '' && (
                     <Col span={24} className="no-selected-contact">
                       No Contact Selected Yet!
                     </Col>
                   )}
-                  {messages.map((message) => {
-                    const sameUser = message.payload.headers.find((header: any) => header.name === 'From').value.indexOf(state.userEmail) !== -1;
-                    const subject = message.payload.headers.find((header: any) => header.name === 'Subject').value;
-                    console.log(subject);
-                    if (state.messageShowModel === 'snippet') {
-                      return (
-                        <Col span={24} key={message.id}>
-                          <Row>
-                            <Col span={16} offset={sameUser ? 8 : 0} className="message">
-                              <Row>
-                                <Col span={24} className="tags">
-                                  <Tag color="green">Subject: {subject}</Tag>
-                                </Col>
-                                <Col span={24} className="message-content">
-                                  {message.snippet}
-                                </Col>
-                              </Row>
-                            </Col>
-                          </Row>
-                        </Col>
-                      );
-                    } else {
-                      return (
-                        <Col span={24}>
-                          <Row></Row>
-                        </Col>
-                      );
-                    }
-                  })}
+                  {/** Empty Box */}
+                  {state.currentContact !== '' && messages.length === 0 && (
+                    <Col span={24} className="empty-box">
+                      Empty box (No message is sent in this contact)
+                    </Col>
+                  )}
+                </Row>
+                {/** Loading messages */}
+                {loading && <Loader />}
+                {/** List messages (emails) */}
+                {messages.length !== 0 && (
+                  <Row className="result">
+                    {messages.map((message) => {
+                      const sameUser = message.payload.headers.find((header: any) => header.name === 'From').value.indexOf(state.userEmail) !== -1;
+                      const subject = message.payload.headers.find((header: any) => header.name === 'Subject').value;
+                      console.log(subject);
+                      if (state.messageShowModel === 'snippet') {
+                        /** Sinppet version */
+                        return (
+                          <Col span={24} key={message.id}>
+                            <Row>
+                              <Col span={14} offset={sameUser ? 10 : 0} className={'message' + (sameUser ? ' me' : '')}>
+                                <Row>
+                                  {subject !== '' && !/^[\s]+$/.test(subject) && (
+                                    <Col span={24} className="tags">
+                                      <Tag color="green">Subject: {subject}</Tag>
+                                    </Col>
+                                  )}
+                                  <Col span={24} className="message-content">
+                                    {getMessageBodyAsText(message)}
+                                  </Col>
+                                </Row>
+                              </Col>
+                            </Row>
+                          </Col>
+                        );
+                      } else {
+                        const innerHTMLIframe = (iframe: HTMLIFrameElement | null, HTML: string) => {
+                          if (iframe?.contentDocument) {
+                            iframe!.contentDocument.body.innerHTML = HTML;
+                          } else {
+                            setTimeout(() => innerHTMLIframe(iframe, HTML), 300);
+                          }
+                        };
+                        /** Complete version */
+                        return (
+                          <Col span={24} className="complete-html">
+                            <Row>
+                              <Col span={4} className="avatar">
+                                <Avatar />
+                              </Col>
+                              <Col span={20}>
+                                <Row>
+                                  <Col span={24}></Col>
+                                  <Col span={24}>
+                                    <div dangerouslySetInnerHTML={{ __html: getMessageBodyAsHTML(message) }} className="iframes" />
+                                  </Col>
+                                </Row>
+                              </Col>
+                            </Row>
+                          </Col>
+                        );
+                      }
+                    })}
+                  </Row>
+                )}
+                {/** The editor (input) */}
+                <Row className="editor">
+                  <Col span={24} className="editor-container">
+                    {state.editor === 'simple' ? (
+                      <TextAreaChat onSubmit={sendMessage} to={state.currentContact} />
+                    ) : (
+                      <Slate
+                        editor={editor as ReactEditor}
+                        value={editorCompleteContent}
+                        onChange={(editorCompleteContent) => setEditorCompleteContent(editorCompleteContent)}
+                      >
+                        <Editable />
+                      </Slate>
+                    )}
+                  </Col>
                 </Row>
               </Col>
             </Row>
@@ -337,6 +474,24 @@ const Gmail: React.FC<GmailInterface> = (props) => {
                     {['snippet', 'complete'].map((label, index) => (
                       <Select.Option value={label} key={index}>
                         {label}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+                <Form.Item label="Editor">
+                  <Select defaultValue={'simple'} value={settings.editor} onChange={settingsEditorTypeChangeHandler}>
+                    {['simple', 'complete'].map((label, index) => (
+                      <Select.Option value={label} key={index}>
+                        {label}
+                      </Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+                <Form.Item label="Message thread">
+                  <Select defaultValue={'last thread'} value={settings.messageThread} onChange={settingsMessageThreadChangeHandler}>
+                    {['new thread', 'last thread'].map((label, index) => (
+                      <Select.Option value={label} key={index}>
+                        {label.toLocaleUpperCase()}
                       </Select.Option>
                     ))}
                   </Select>

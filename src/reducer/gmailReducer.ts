@@ -7,6 +7,8 @@ export enum GMAIL_REDUCER_TYPE {
   SET_CURRENT_CONTACT,
   SET_MESSAGE_MODEL_SHOW,
   SET_USER_EMAIL,
+  SET_EDITOR_TYPE,
+  SET_MESSAGE_THREAD,
 }
 
 export interface GmailReducerInterface {
@@ -17,6 +19,8 @@ export interface GmailReducerInterface {
   currentContact: string;
   userEmail: string;
   messageShowModel: 'snippet' | 'complete';
+  editor: 'simple' | 'complete';
+  messageThread: 'new thread' | 'last thread';
 }
 
 export const GmailReducer = (state: GmailReducerInterface, action: { type: GMAIL_REDUCER_TYPE; payload: Partial<GmailReducerInterface> }) => {
@@ -52,6 +56,20 @@ export const GmailReducer = (state: GmailReducerInterface, action: { type: GMAIL
     case GMAIL_REDUCER_TYPE.SET_USER_EMAIL: {
       if (typeof action.payload.userEmail === 'string') {
         return { ...state, userEmail: action.payload.userEmail };
+      }
+      break;
+    }
+
+    case GMAIL_REDUCER_TYPE.SET_EDITOR_TYPE: {
+      if (typeof action.payload.editor === 'string') {
+        return { ...state, editor: action.payload.editor };
+      }
+      break;
+    }
+
+    case GMAIL_REDUCER_TYPE.SET_EDITOR_TYPE: {
+      if (typeof action.payload.messageThread === 'string') {
+        return { ...state, messageThread: action.payload.messageThread };
       }
       break;
     }
