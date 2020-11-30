@@ -1,14 +1,12 @@
-import { Alert, Button, Col, Form, Input, Menu, message, Modal, Row, Select, Tag } from 'antd';
+import { Alert, Button, Col, Form, Input, Modal, Row, Select, Tag } from 'antd';
 import React, { useCallback, useContext, useEffect, useReducer, useState } from 'react';
 import { GmailReducer, GmailReducerInterface, GMAIL_REDUCER_TYPE } from '../reducer/gmailReducer';
 import AddIcon from '@material-ui/icons/Add';
 import SettingsIcon from '@material-ui/icons/Settings';
-import { Editor } from '../context/CreateEditorContext';
-import { Editable, ReactEditor, Slate } from 'slate-react';
-import { TextAreaChat } from './Inputs/TextareaChat';
 import { Base64 } from 'js-base64';
 import { Loader } from './Loader/Loader';
-import Avatar from 'antd/lib/avatar/avatar';
+import ListMessages from './mail/ListMessages';
+import Editor from './mail/Editor';
 
 interface GmailInterface {}
 
@@ -140,39 +138,6 @@ const Gmail: React.FC<GmailInterface> = (props) => {
       }
     }
   }, [state.currentContact, state.currentLabel]);
-
-  const getMessageBodyAsHTML = (message: any) => {
-    const encodedBody =
-      message.payload.parts === void 0
-        ? message.payload.body.data
-        : message.payload.parts.find((part: any) => part.mimeType === 'text/html')?.body?.data;
-    const decode = Base64.decode(encodedBody || '');
-    console.log('ee ', decode, encodedBody);
-    return decode;
-  };
-
-  const getMessageBodyAsText = (message: any) => {
-    const encodedBody =
-      message.payload.parts === void 0
-        ? message.payload.body.data
-        : message.payload.parts.find((part: any) => part.mimeType === 'text/plain')?.body?.data;
-    const decode = Base64.decode(encodedBody || '');
-
-    const to = message.payload.headers.find((header: any) => header.name === 'To').value.replace(/.+<(.+)>/, '$1');
-    const index = decode.indexOf(`<${to}>`);
-    const cleanText =
-      index > -1
-        ? decode.substring(0, index)
-        : decode
-            .split('\n')
-            .filter((line) => line[0] !== '>' && line[0] !== '>')
-            .join('\n');
-    console.log('ee ', cleanText, to, message.snippet);
-    return cleanText;
-  };
-
-  const editor = useContext(Editor);
-
   const sendMessage = useCallback(
     (content: string, headers = { From: state.userEmail, To: state.currentContact, Subject: '' }) => {
       if (content !== '' && !/^\s+$/.test(content)) {
@@ -295,7 +260,15 @@ const Gmail: React.FC<GmailInterface> = (props) => {
     });
     dispatch({
       type: GMAIL_REDUCER_TYPE.SET_MESSAGE_MODEL_SHOW,
-      payload: { messageShowModel: settings.messageShowModel as 'snippet' | 'complete' },
+      payload: { messageShowModel: settings.messageShowModel as 'snippet' | 'complete as text' | 'complete as html' },
+    });
+    dispatch({
+      type: GMAIL_REDUCER_TYPE.SET_MESSAGE_THREAD,
+      payload: { messageThread: settings.messageShowModel as 'new thread' | 'last thread' },
+    });
+    dispatch({
+      type: GMAIL_REDUCER_TYPE.SET_EDITOR_TYPE,
+      payload: { editor: settings.editor as 'simple' | 'advanced' },
     });
     setSettings((state) => ({ ...state, showSettings: false }));
   }, [settings]);
@@ -363,78 +336,9 @@ const Gmail: React.FC<GmailInterface> = (props) => {
                 {/** Loading messages */}
                 {loading && <Loader />}
                 {/** List messages (emails) */}
-                {messages.length !== 0 && (
-                  <Row className="result">
-                    {messages.map((message) => {
-                      const sameUser = message.payload.headers.find((header: any) => header.name === 'From').value.indexOf(state.userEmail) !== -1;
-                      const subject = message.payload.headers.find((header: any) => header.name === 'Subject').value;
-                      console.log(subject);
-                      if (state.messageShowModel === 'snippet') {
-                        /** Sinppet version */
-                        return (
-                          <Col span={24} key={message.id}>
-                            <Row>
-                              <Col span={14} offset={sameUser ? 10 : 0} className={'message' + (sameUser ? ' me' : '')}>
-                                <Row>
-                                  {subject !== '' && !/^[\s]+$/.test(subject) && (
-                                    <Col span={24} className="tags">
-                                      <Tag color="green">Subject: {subject}</Tag>
-                                    </Col>
-                                  )}
-                                  <Col span={24} className="message-content">
-                                    {getMessageBodyAsText(message)}
-                                  </Col>
-                                </Row>
-                              </Col>
-                            </Row>
-                          </Col>
-                        );
-                      } else {
-                        const innerHTMLIframe = (iframe: HTMLIFrameElement | null, HTML: string) => {
-                          if (iframe?.contentDocument) {
-                            iframe!.contentDocument.body.innerHTML = HTML;
-                          } else {
-                            setTimeout(() => innerHTMLIframe(iframe, HTML), 300);
-                          }
-                        };
-                        /** Complete version */
-                        return (
-                          <Col span={24} className="complete-html">
-                            <Row>
-                              <Col span={4} className="avatar">
-                                <Avatar />
-                              </Col>
-                              <Col span={20}>
-                                <Row>
-                                  <Col span={24}></Col>
-                                  <Col span={24}>
-                                    <div dangerouslySetInnerHTML={{ __html: getMessageBodyAsHTML(message) }} className="iframes" />
-                                  </Col>
-                                </Row>
-                              </Col>
-                            </Row>
-                          </Col>
-                        );
-                      }
-                    })}
-                  </Row>
-                )}
+                {messages.length > 0 && <ListMessages messageShowModel={state.messageShowModel} messages={messages} userEmail={state.userEmail} />}
                 {/** The editor (input) */}
-                <Row className="editor">
-                  <Col span={24} className="editor-container">
-                    {state.editor === 'simple' ? (
-                      <TextAreaChat onSubmit={sendMessage} to={state.currentContact} />
-                    ) : (
-                      <Slate
-                        editor={editor as ReactEditor}
-                        value={editorCompleteContent}
-                        onChange={(editorCompleteContent) => setEditorCompleteContent(editorCompleteContent)}
-                      >
-                        <Editable />
-                      </Slate>
-                    )}
-                  </Col>
-                </Row>
+                {state.currentContact !== '' && <Editor currentContact={state.currentContact} editor={state.editor} sendMessage={sendMessage} />}
               </Col>
             </Row>
           </Col>
@@ -471,18 +375,18 @@ const Gmail: React.FC<GmailInterface> = (props) => {
                 </Form.Item>
                 <Form.Item label="Model">
                   <Select defaultValue={'snippet'} value={settings.messageShowModel} onChange={settingsMessageModelChangeHandler}>
-                    {['snippet', 'complete'].map((label, index) => (
+                    {['snippet', 'complete as text', 'complete as html'].map((label, index) => (
                       <Select.Option value={label} key={index}>
-                        {label}
+                        {label.toLocaleUpperCase()}
                       </Select.Option>
                     ))}
                   </Select>
                 </Form.Item>
                 <Form.Item label="Editor">
                   <Select defaultValue={'simple'} value={settings.editor} onChange={settingsEditorTypeChangeHandler}>
-                    {['simple', 'complete'].map((label, index) => (
+                    {['simple', 'advanced'].map((label, index) => (
                       <Select.Option value={label} key={index}>
-                        {label}
+                        {label.toLocaleUpperCase()}
                       </Select.Option>
                     ))}
                   </Select>

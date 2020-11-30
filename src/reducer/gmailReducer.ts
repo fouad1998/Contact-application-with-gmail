@@ -18,8 +18,8 @@ export interface GmailReducerInterface {
   labels: string[];
   currentContact: string;
   userEmail: string;
-  messageShowModel: 'snippet' | 'complete';
-  editor: 'simple' | 'complete';
+  messageShowModel: 'snippet' | 'complete as text' | 'complete as html';
+  editor: 'simple' | 'advanced';
   messageThread: 'new thread' | 'last thread';
 }
 

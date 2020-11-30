@@ -1,0 +1,46 @@
+.attachements {
+  padding: 10px 5px;
+  min-width: 40px;
+
+  .attachement-title h5 {
+    font-variant-caps: all-petite-caps;
+    text-decoration: underline;
+    color: rgb(128, 126, 126);
+  }
+
+  .file-attached {
+    .file-icon {
+      position: relative;
+      max-width: 60px;
+      margin: auto;
+
+      &:hover {
+        .file-size {
+          display: flex;
+        }
+      }
+
+      .file-size {
+        display: none;
+        justify-content: center;
+        align-items: center;
+        position: absolute;
+        top: 0;
+        right: 0;
+        padding: 3px 4px;
+        background: rgb(158, 158, 158);
+        font-variant-caps: all-petite-caps;
+        font-weight: bold;
+        border-radius: 3px;
+        color: rgb(250, 249, 249);
+      }
+    }
+
+    .file-name {
+      font-size: small;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+  }
+}

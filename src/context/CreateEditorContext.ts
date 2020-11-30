@@ -1,3 +1,3 @@
 import { createContext } from 'react';
 
-export const Editor = createContext<Partial<any>>({});
+export const EditorContext = createContext<any>({});

@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Layout, Row, Col, Modal } from 'antd';
+import { Layout, Row, Col } from 'antd';
 import Gmail from './component/Gmail';
 import Signin from './component/Signin';
-import { Editor } from './context/CreateEditorContext';
+import { EditorContext } from './context/CreateEditorContext';
 import 'antd/dist/antd.css';
 import './scss/home.scss';
 import './scss/signin.scss';
 import './scss/mailBoxInterface.scss';
-import { withReact } from 'slate-react';
-import { createEditor } from 'slate';
+import '../node_modules/react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 
 function App() {
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -59,8 +58,6 @@ function App() {
     LoadGoogleAuth();
   }, []);
 
-  const editor = useMemo(() => withReact(createEditor()), []);
-
   function updateSigninStatus(isSignedIn: boolean) {
     setLoading(false);
     if (isSignedIn) {
@@ -72,21 +69,19 @@ function App() {
 
   return (
     <Layout style={{ height: '100vh' }}>
-      <Editor.Provider value={editor}>
-        <Row className="home">
-          <Col span={24} className="title">
-            <h1>Contacts Application with Gmail</h1>
-          </Col>
-          <Col span={24}>
-            {loading && <strong>Loading....</strong>}
-            {error && <strong>Error...</strong>}
-            {/**@ts-ignore */}
-            {isAuthorized && !loading && !error && <Gmail />}
-            {/**@ts-ignore */}
-            {!isAuthorized && !loading && !error && <Signin signin={GoogleAuth.signIn} loading={loading} />}
-          </Col>
-        </Row>
-      </Editor.Provider>
+      <Row className="home">
+        <Col span={24} className="title">
+          <h1>Contacts Application with Gmail</h1>
+        </Col>
+        <Col span={24}>
+          {loading && <strong>Loading....</strong>}
+          {error && <strong>Error...</strong>}
+          {/**@ts-ignore */}
+          {isAuthorized && !loading && !error && <Gmail />}
+          {/**@ts-ignore */}
+          {!isAuthorized && !loading && !error && <Signin signin={GoogleAuth.signIn} loading={loading} />}
+        </Col>
+      </Row>
     </Layout>
   );
 }
