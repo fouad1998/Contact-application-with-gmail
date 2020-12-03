@@ -1,9 +1,10 @@
-import { Avatar, Col, Row, Tag, Typography } from 'antd';
+import { Avatar, Button, Col, Row, Tag, Typography } from 'antd';
 import { Base64 } from 'js-base64';
 import Headers from './Headers';
-import React from 'react';
+import React, { useContext } from 'react';
 import { parse } from 'node-html-parser';
 import AttachedFiles from './AttachedFiles';
+import { GmailContext } from '../Gmail';
 
 interface ListMessagesProps {
   messages: Array<any>;
@@ -35,8 +36,18 @@ export const getMessageBodyAsText = (message: any) => {
 };
 
 const ListMessages: React.FC<ListMessagesProps> = ({ messages, messageShowModel, userEmail }) => {
+  const { state } = useContext(GmailContext);
+
   return (
     <Row className="result">
+      <Col span={24} className="header">
+        <Row>
+          <Col span={12}>{state!.selectedContact.kickname}</Col>
+          <Col span={12}>
+            <Button></Button>
+          </Col>
+        </Row>
+      </Col>
       {messages.map((message) => {
         const sameUser = message.payload.headers.find((header: any) => header.name === 'From').value.indexOf(userEmail) !== -1;
         const subject = message.payload.headers.find((header: any) => header.name === 'Subject').value;

@@ -7,14 +7,14 @@ div.editor {
   flex-grow: 0;
   background: rgba(104, 104, 104, 0.897);
 
-  & .editor-container {
+  .editor-container {
     padding: 10px 8px;
 
     textarea {
       resize: none;
     }
 
-    & .textarea-chat {
+    .textarea-chat {
       font-size: large;
       border-width: 0 !important;
       border: none !important;
@@ -32,7 +32,7 @@ div.editor {
     height: 300px !important;
     display: block;
 
-    & div.editor-container {
+    div.editor-container {
       padding: 0;
 
       div.editor-advanced-container {
@@ -52,7 +52,7 @@ div.editor {
           flex-shrink: 0;
           flex-grow: 0;
 
-          & button {
+          button {
             margin: 0 5px;
           }
         }

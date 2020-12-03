@@ -7,7 +7,7 @@ import 'antd/dist/antd.css';
 import './scss/home.scss';
 import './scss/signin.scss';
 import './scss/mailBoxInterface.scss';
-import '../node_modules/react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
+// import '../node_modules/react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 
 function App() {
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -28,7 +28,7 @@ function App() {
               // The API key you can get one from the google console too
               apiKey: 'AIzaSyDAOanQqHi86xX943ff1vyvhl0y5D4K2UM',
               // Scope are the permission needed (the permission we are asking for)
-              scope: 'https://mail.google.com/',
+              scope: 'https://www.google.com/m8/feeds https://mail.google.com/',
               // The tools we will use with this API
               discoveryDocs: ['https://www.googleapis.com/discovery/v1/apis/gmail/v1/rest'],
             })
@@ -38,14 +38,12 @@ function App() {
                 const GoogleAuth = gapi.auth2.getAuthInstance();
                 GoogleAuth.isSignedIn.listen(updateSigninStatus);
                 const status = GoogleAuth.isSignedIn.get();
-                if (status) {
-                  console.log(GoogleAuth);
-                }
                 //@ts-ignore
                 updateSigninStatus(status);
                 setGoogleAuth(GoogleAuth);
               },
               () => {
+                setLoading(false);
                 setError(true);
               }
             );
@@ -86,4 +84,4 @@ function App() {
   );
 }
 
-export default App;
+export default React.memo(App);

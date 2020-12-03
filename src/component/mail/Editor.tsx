@@ -5,7 +5,6 @@ import { Editor } from 'react-draft-wysiwyg';
 import { EditorContext } from '../../context/CreateEditorContext';
 import { TextAreaChat } from '../Inputs/TextareaChat';
 import ReactQuill from 'react-quill';
-import 'react-quill/dist/quill.snow.css';
 
 interface EditorProps {
   editor: string;
@@ -33,7 +32,7 @@ const EditorI: React.FC<EditorProps> = ({ editor, currentContact, sendMessage })
                 onEditorStateChange={(content) => setEditorContent(content)}
                 placeholder="The message goes here..."
               />} */}
-              <ReactQuill value={editorContent} onChange={(state) => setEditorContent(state)} />
+              {/* <ReactQuill value={editorContent} onChange={(state) => setEditorContent(state)} /> */}
             </Col>
             <Col span={24} className="actions">
               <Button>Cancel</Button>

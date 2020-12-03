@@ -27,6 +27,7 @@ export const TextAreaChat: React.FC<TextAreaInterface> = ({ onSubmit, to }) => {
       if ((altKey || shiftKey) && (code === '\n' || keyCode === 13)) {
         return void 0;
       } else if (code === '\n' || keyCode === 13) {
+        event.preventDefault();
         setContent('');
         onSubmit && onSubmit(content);
       }

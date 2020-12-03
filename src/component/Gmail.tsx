@@ -1,26 +1,40 @@
-import { Alert, Button, Col, Form, Input, Modal, Row, Select, Tag } from 'antd';
-import React, { useCallback, useContext, useEffect, useReducer, useState } from 'react';
+import { Col, Row } from 'antd';
+import React, { createContext, useCallback, useEffect, useReducer, useState } from 'react';
 import { GmailReducer, GmailReducerInterface, GMAIL_REDUCER_TYPE } from '../reducer/gmailReducer';
-import AddIcon from '@material-ui/icons/Add';
-import SettingsIcon from '@material-ui/icons/Settings';
 import { Base64 } from 'js-base64';
 import { Loader } from './Loader/Loader';
 import ListMessages from './mail/ListMessages';
 import Editor from './mail/Editor';
+import Contacts from './mail/Contacts';
+import Axios from 'axios';
 
 interface GmailInterface {}
 
-interface Contact {
-  kickname: string;
-  email: string;
+export interface GmailSettings {
+  selectedLabel: string;
+  showSettings: boolean;
+  messageShowModel: string;
+  editor: string;
+  messageThread: string;
 }
 
-const Gmail: React.FC<GmailInterface> = (props) => {
+export interface GmailContextInterface {
+  state: GmailReducerInterface;
+  loadingContacts: boolean;
+  saveSettings: (settings: GmailSettings) => any;
+  selectContact: (contact: { kickname: string; emails: string[] }) => any;
+}
+
+export const GmailContext = createContext<Partial<GmailContextInterface>>({});
+
+const Gmail: React.FC<GmailInterface> = ({}) => {
   const initialReducerValue: GmailReducerInterface = {
     currentLabel: 'ALL',
     nextPageToken: '',
     cache: [],
     labels: [],
+    contacts: [],
+    selectedContact: { kickname: '', emails: [] },
     currentContact: '',
     messageShowModel: 'snippet',
     userEmail: '',
@@ -29,33 +43,9 @@ const Gmail: React.FC<GmailInterface> = (props) => {
   };
 
   const [state, dispatch] = useReducer(GmailReducer, initialReducerValue);
-  const [contacts, setContacts] = useState<Array<Contact>>([
-    { email: 'mboumediene@inttic.dz', kickname: 'Mohamed' },
-    ...new Array(20).fill({ kickname: 'hfouad', email: 'hachour5fouad@gmail.com' }).map((e) => ({
-      ...e,
-      email:
-        new Array(10)
-          .fill('')
-          .map((e) => String.fromCharCode(Math.random() * 25 + 97))
-          .join('') + '@gmail.com',
-    })),
-  ]);
-  const [contactAdd, setContactAdd] = useState<{ addContact: boolean; errorAdding: boolean; errorContent: string; contact: Partial<Contact> }>({
-    addContact: false,
-    errorAdding: false,
-    errorContent: '',
-    contact: {},
-  });
-  const [settings, setSettings] = useState({
-    showSettings: false,
-    selectedLabel: state.currentLabel,
-    messageShowModel: 'snippet',
-    editor: 'simple',
-    messageThread: 'new thread',
-  });
   const [messages, setMessages] = useState<Array<any>>([]);
-  const [editorCompleteContent, setEditorCompleteContent] = useState<Array<any>>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingContacts, setLoadingContacts] = useState<boolean>(true);
 
   useEffect(() => {
     //@ts-ignore
@@ -76,19 +66,63 @@ const Gmail: React.FC<GmailInterface> = (props) => {
     });
 
     profileRequest.execute((response: any) => {
-      console.log(response);
+      const email = response.result.emailAddress;
+      console.log(email);
       dispatch({
         type: GMAIL_REDUCER_TYPE.SET_USER_EMAIL,
         payload: { userEmail: response.result.emailAddress },
       });
+      //@ts-ignore
+      const token = gapi.client.getToken();
+      //@ts-ignore
+      Axios.get(`https://www.google.com/m8/feeds/contacts/${email}/full?&alt=json&max-results=500&v=3.0&access_token=${token.access_token}`)
+        .then(({ data }) => {
+          console.log(data);
+          const contacts = [];
+          //@ts-ignore
+          for (let i = 0; i < data.feed.entry.length; i++) {
+            //@ts-ignore
+            const entry = data.feed.entry[i];
+            const contact = {
+              kickname: entry['title']['$t'],
+              emails: [],
+            };
+
+            if (entry['gd$email']) {
+              const emails = entry['gd$email'];
+              for (let j = 0, email; (email = emails[j]); j++) {
+                //@ts-ignore
+                contact['emails'].push(email['address']);
+              }
+            }
+
+            if (!contact['kickname']) {
+              contact['kickname'] = contact['emails'][0] || '<Unknown>';
+            }
+
+            contacts.push(contact);
+          }
+          console.log(contacts);
+          dispatch({
+            type: GMAIL_REDUCER_TYPE.SET_CONTACTS,
+            payload: { contacts: contacts },
+          });
+        })
+        .catch((e) => console.log('Error con', e))
+        .finally(() => setLoadingContacts(false));
     });
   }, []);
 
   useEffect(() => {
-    if (state.currentContact === '') {
+    if (state.currentContact.length === 0) {
       setMessages([]);
     } else {
-      const contact = state.cache.find((contact) => state.currentContact === contact.email);
+      const contact = state.cache.find((contact) => {
+        const emails = contact.email;
+        //@ts-ignore
+        const found = emails.reduceRight((currentState, email) => currentState && state.currentContact.includes(email), true);
+        return found;
+      });
       if (contact) {
         setMessages(contact.messages);
       } else {
@@ -98,7 +132,12 @@ const Gmail: React.FC<GmailInterface> = (props) => {
           userId: 'me',
           labelIds: state.currentLabel === 'ALL' ? void 0 : state.currentLabel,
           maxResults: 200,
-          q: `from:${state.currentContact} OR to:${state.currentContact}`,
+          // When the user select the ALL as current contact that means we have to send the mail
+          // to all email that user has
+          q:
+            state.currentContact === 'ALL'
+              ? state.selectedContact.emails.map((email) => `from:${email} OR to:${email}`).join(' OR ')
+              : `from:${state.currentContact} OR to:${state.currentContact}`,
         });
 
         request.execute((res: any) => {
@@ -114,14 +153,11 @@ const Gmail: React.FC<GmailInterface> = (props) => {
               });
               messages.push(request.result);
               console.log(request.result, messages.length);
-
-              // await request.execute((res: any) => {
-              //   console.log(res);
-              // });
             }
             setLoading(false);
             setMessages(messages.reverse());
           };
+
           if (res.error === void 0) {
             if (res.result.resultSizeEstimate > 0) {
               func();
@@ -138,6 +174,7 @@ const Gmail: React.FC<GmailInterface> = (props) => {
       }
     }
   }, [state.currentContact, state.currentLabel]);
+
   const sendMessage = useCallback(
     (content: string, headers = { From: state.userEmail, To: state.currentContact, Subject: '' }) => {
       if (content !== '' && !/^\s+$/.test(content)) {
@@ -168,92 +205,25 @@ const Gmail: React.FC<GmailInterface> = (props) => {
     [state.currentContact, state.userEmail]
   );
 
-  const selectContact = useCallback((email: string) => {
-    dispatch({
-      type: GMAIL_REDUCER_TYPE.SET_CURRENT_CONTACT,
-      payload: { currentContact: email },
-    });
-  }, []);
+  const selectContact = useCallback(
+    (select: { kickname: string; emails: string[] }) => {
+      dispatch({
+        type: GMAIL_REDUCER_TYPE.SET_SELECT,
+        payload: { selectedContact: select },
+      });
 
-  const addContactClickHandler = useCallback((event: React.MouseEvent<HTMLElement, MouseEvent>) => {
-    event.stopPropagation();
-    setContactAdd((state) => ({ ...state, addContact: !state.addContact }));
-  }, []);
-
-  const addContactEmailChangeHandler = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    event.stopPropagation();
-    const value = event.target.value;
-    setContactAdd((state) => ({ ...state, contact: { ...state.contact, email: value } }));
-  }, []);
-
-  const addContactKicknameChangeHandler = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    event.stopPropagation();
-    const value = event.target.value;
-    setContactAdd((state) => ({ ...state, contact: { ...state.contact, kickname: value } }));
-  }, []);
-
-  const addContactSaveHandler = useCallback(
-    (event: React.MouseEvent<HTMLElement, MouseEvent>) => {
-      event.stopPropagation();
-      if (typeof contactAdd.contact.email === 'string' && contactAdd.contact.email !== '') {
-        if (/^[a-zA-Z0-9\.\-]+@[a-zA-Z0-9]+\.[a-z]+$/.test(contactAdd.contact.email as string)) {
-          if (contacts.findIndex((contact) => contact.email === contactAdd.contact.email) === -1) {
-            setContacts((state) => [...state, { ...(contactAdd.contact as Contact) }]);
-            setContactAdd({
-              errorAdding: false,
-              addContact: false,
-              contact: {},
-              errorContent: '',
-            });
-          } else {
-            setContactAdd((state) => ({ ...state, errorAdding: true, errorContent: 'Contact already exists' }));
-          }
-        } else {
-          setContactAdd((state) => ({ ...state, errorAdding: true, errorContent: 'The given email it is not correct mail address' }));
-        }
-      } else {
-        setContactAdd((state) => ({ ...state, errorAdding: true, errorContent: 'Cannot add contact without email address' }));
+      if (state.currentContact !== 'ALL') {
+        // The user doesn't select the ALL option so we select the first entry
+        dispatch({
+          type: GMAIL_REDUCER_TYPE.SET_CURRENT_CONTACT,
+          payload: { currentContact: select.emails[0] },
+        });
       }
     },
-    [contactAdd]
+    [state.currentContact]
   );
 
-  const addContactCancelHandler = useCallback((event: React.MouseEvent<HTMLElement, MouseEvent>) => {
-    event.stopPropagation();
-    setContactAdd((state) => ({ ...state, addContact: false }));
-  }, []);
-
-  const settingsClickHandler = useCallback(() => {
-    setSettings({
-      selectedLabel: state.currentLabel,
-      showSettings: true,
-      messageShowModel: state.messageShowModel,
-      editor: state.editor,
-      messageThread: state.messageThread,
-    });
-  }, [state]);
-
-  const settingsLabelChangeHandler = useCallback((label: string) => {
-    setSettings((state) => ({ ...state, selectedLabel: label }));
-  }, []);
-
-  const settingsMessageModelChangeHandler = useCallback((model: string) => {
-    setSettings((state) => ({ ...state, messageShowModel: model }));
-  }, []);
-
-  const settingsEditorTypeChangeHandler = useCallback((editorType: string) => {
-    setSettings((state) => ({ ...state, editor: editorType }));
-  }, []);
-
-  const settingsMessageThreadChangeHandler = useCallback((thread: string) => {
-    setSettings((state) => ({ ...state, messageThread: thread }));
-  }, []);
-
-  const settingsCancelHandler = useCallback(() => {
-    setSettings((state) => ({ ...state, showSettings: false }));
-  }, []);
-
-  const settingsSaveHandler = useCallback(() => {
+  const settingsSaveHandler = useCallback((settings: GmailSettings) => {
     dispatch({
       type: GMAIL_REDUCER_TYPE.SET_CURRENT_LABEL,
       payload: { currentLabel: settings.selectedLabel },
@@ -270,142 +240,48 @@ const Gmail: React.FC<GmailInterface> = (props) => {
       type: GMAIL_REDUCER_TYPE.SET_EDITOR_TYPE,
       payload: { editor: settings.editor as 'simple' | 'advanced' },
     });
-    setSettings((state) => ({ ...state, showSettings: false }));
-  }, [settings]);
+  }, []);
 
   return (
-    <Row className="gmail-interface">
-      <Col span={24} className="inherit-height">
-        <Row className="inherit-height">
-          <Col span={24} className="inherit-height">
-            <Row className="inherit-height application">
-              <Col span={5} className="left-side">
-                <Row dir="column">
-                  <Col span={24} className="title">
-                    <h3>Contacts</h3>
-                  </Col>
-                  <Col span={24} className="contacts">
-                    <Row>
-                      {contacts.map((contact, index) => (
-                        <Col
-                          span={24}
-                          className={'item' + (contact.email === state.currentContact ? ' active' : '')}
-                          key={index}
-                          onClick={() => selectContact(contact.email)}
-                        >
-                          {contact.kickname} <Tag color="blue">{contact.email}</Tag>
-                        </Col>
-                      ))}
-                    </Row>
-                  </Col>
-                  <Col span={24}>
-                    <Row className="controls">
-                      <Col span={19} className="contacts-number">
-                        Number of contacts
-                        <Tag color="green" className="tag">
-                          {contacts.length}
-                        </Tag>
+    <GmailContext.Provider value={{ state, saveSettings: settingsSaveHandler, selectContact, loadingContacts }}>
+      <Row className="gmail-interface">
+        <Col span={24} className="inherit-height">
+          <Row className="inherit-height">
+            <Col span={24} className="inherit-height">
+              <Row className="inherit-height application">
+                <Col span={5} className="left-side">
+                  <Contacts />
+                </Col>
+                <Col span={19} className="right-side">
+                  <Row className="message-info">
+                    {/** No selected contact */}
+                    {state.currentContact.length === 0 && (
+                      <Col span={24} className="no-selected-contact">
+                        No Contact Selected Yet!
                       </Col>
-                      <Col span={5} className="controllers">
-                        <Button type="ghost" onClick={addContactClickHandler}>
-                          <AddIcon />
-                        </Button>
-                        <Button type="ghost" onClick={settingsClickHandler}>
-                          <SettingsIcon />
-                        </Button>
+                    )}
+                    {/** Empty Box */}
+                    {state.currentContact.length > 0 && messages.length === 0 && (
+                      <Col span={24} className="empty-box">
+                        Empty box (No message is sent in this contact)
                       </Col>
-                    </Row>
-                  </Col>
-                </Row>
-              </Col>
-              <Col span={19} className="right-side">
-                <Row className="message-info">
-                  {/** No selected contact */}
-                  {state.currentContact === '' && (
-                    <Col span={24} className="no-selected-contact">
-                      No Contact Selected Yet!
-                    </Col>
+                    )}
+                  </Row>
+                  {/** Loading messages */}
+                  {loading && <Loader />}
+                  {/** List messages (emails) */}
+                  {messages.length > 0 && <ListMessages messageShowModel={state.messageShowModel} messages={messages} userEmail={state.userEmail} />}
+                  {/** The editor (input) */}
+                  {state.currentContact.length > 0 && (
+                    <Editor currentContact={state.currentContact} editor={state.editor} sendMessage={sendMessage} />
                   )}
-                  {/** Empty Box */}
-                  {state.currentContact !== '' && messages.length === 0 && (
-                    <Col span={24} className="empty-box">
-                      Empty box (No message is sent in this contact)
-                    </Col>
-                  )}
-                </Row>
-                {/** Loading messages */}
-                {loading && <Loader />}
-                {/** List messages (emails) */}
-                {messages.length > 0 && <ListMessages messageShowModel={state.messageShowModel} messages={messages} userEmail={state.userEmail} />}
-                {/** The editor (input) */}
-                {state.currentContact !== '' && <Editor currentContact={state.currentContact} editor={state.editor} sendMessage={sendMessage} />}
-              </Col>
-            </Row>
-          </Col>
-        </Row>
-        {/** Add new contact */}
-        <Modal title="Add new contact" visible={contactAdd.addContact} onOk={addContactSaveHandler} onCancel={addContactCancelHandler}>
-          <Row className="add-contact-modal">
-            {contactAdd.errorAdding && (
-              <Col span={24} className="section">
-                <Alert type="error" message={contactAdd.errorContent} closable={true} />
-              </Col>
-            )}
-            <Col span={24} className="section">
-              <Input value={contactAdd.contact.kickname} addonBefore={'Kickname'} onChange={addContactKicknameChangeHandler} />
-            </Col>
-            <Col span={24} className="section">
-              <Input value={contactAdd.contact.email} addonBefore={'Email'} onChange={addContactEmailChangeHandler} />
+                </Col>
+              </Row>
             </Col>
           </Row>
-        </Modal>
-        {/** Settings */}
-        <Modal title="Settings" visible={settings.showSettings} onOk={settingsSaveHandler} onCancel={settingsCancelHandler}>
-          <Row>
-            <Col span={24}>
-              <Form>
-                <Form.Item label="Label">
-                  <Select defaultValue={'ALL'} value={settings.selectedLabel} onChange={settingsLabelChangeHandler}>
-                    {state.labels.map((label, index) => (
-                      <Select.Option value={label} key={index}>
-                        {label}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item label="Model">
-                  <Select defaultValue={'snippet'} value={settings.messageShowModel} onChange={settingsMessageModelChangeHandler}>
-                    {['snippet', 'complete as text', 'complete as html'].map((label, index) => (
-                      <Select.Option value={label} key={index}>
-                        {label.toLocaleUpperCase()}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item label="Editor">
-                  <Select defaultValue={'simple'} value={settings.editor} onChange={settingsEditorTypeChangeHandler}>
-                    {['simple', 'advanced'].map((label, index) => (
-                      <Select.Option value={label} key={index}>
-                        {label.toLocaleUpperCase()}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-                <Form.Item label="Message thread">
-                  <Select defaultValue={'last thread'} value={settings.messageThread} onChange={settingsMessageThreadChangeHandler}>
-                    {['new thread', 'last thread'].map((label, index) => (
-                      <Select.Option value={label} key={index}>
-                        {label.toLocaleUpperCase()}
-                      </Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Form>
-            </Col>
-          </Row>
-        </Modal>
-      </Col>
-    </Row>
+        </Col>
+      </Row>
+    </GmailContext.Provider>
   );
 };
 
