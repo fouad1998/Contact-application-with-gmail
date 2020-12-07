@@ -5,11 +5,12 @@ import { Editor } from 'react-draft-wysiwyg';
 import { EditorContext } from '../../context/CreateEditorContext';
 import { TextAreaChat } from '../Inputs/TextareaChat';
 import ReactQuill from 'react-quill';
+import AdvancedEditor from '../Inputs/AdvancedEditor';
 
 interface EditorProps {
   editor: string;
   currentContact: string;
-  sendMessage: (content: string) => any;
+  sendMessage: (content: string, multipart: boolean) => any;
 }
 
 const EditorI: React.FC<EditorProps> = ({ editor, currentContact, sendMessage }) => {
@@ -23,22 +24,7 @@ const EditorI: React.FC<EditorProps> = ({ editor, currentContact, sendMessage })
         {editor === 'simple' ? (
           <TextAreaChat onSubmit={sendMessage} to={currentContact} />
         ) : (
-          <Row className="editor-advanced-container">
-            <Col span={24}>
-              {/* {<Editor
-                editorState={editorContent}
-                wrapperClassName="editor-wrapper"
-                editorClassName="editor-engine"
-                onEditorStateChange={(content) => setEditorContent(content)}
-                placeholder="The message goes here..."
-              />} */}
-              {/* <ReactQuill value={editorContent} onChange={(state) => setEditorContent(state)} /> */}
-            </Col>
-            <Col span={24} className="actions">
-              <Button>Cancel</Button>
-              <Button>Send</Button>
-            </Col>
-          </Row>
+          <AdvancedEditor to={currentContact} onSubmit={sendMessage} />
         )}
       </Col>
     </Row>

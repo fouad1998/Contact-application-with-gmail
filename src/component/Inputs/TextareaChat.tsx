@@ -1,15 +1,21 @@
 import React, { useCallback, useState } from 'react';
-import { Input } from 'antd';
+import { Button, Col, Input, Row, Upload, Modal } from 'antd';
+import { Add } from '@material-ui/icons';
+import { RcFile, UploadFile } from 'antd/lib/upload/interface';
+import { Base64 } from 'js-base64';
 
 const { TextArea } = Input;
 
+const { error } = Modal;
+
 interface TextAreaInterface {
   to: string;
-  onSubmit: (content: string) => any;
+  onSubmit: (content: string, multipart: boolean) => any;
 }
 
 export const TextAreaChat: React.FC<TextAreaInterface> = ({ onSubmit, to }) => {
   const [content, setContent] = useState<string>('');
+  const [filesContent, setFilesContent] = useState<{ filename: string; size: number; content: string; type: string; id: string; file: RcFile }[]>([]);
 
   const onChangeHandler = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
     event.stopPropagation();
@@ -28,21 +34,91 @@ export const TextAreaChat: React.FC<TextAreaInterface> = ({ onSubmit, to }) => {
         return void 0;
       } else if (code === '\n' || keyCode === 13) {
         event.preventDefault();
+        const email = `
+${filesContent.length === 0 ? '' : '--emplorium_boundary'}
+${filesContent.length === 0 ? '' : '--emplorium_boundary'}
+Content-Type: text/plain; charset="UTF-8"
+${content}
+${filesContent
+  .map(
+    (file) => `
+
+--emplorium_boundary
+Content-Type: ${file.type}
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="${file.filename}"
+
+${file.content}
+`
+  )
+  .join('')}
+
+${filesContent.length === 0 ? '' : '--emplorium_boundary--'}
+`;
+        onSubmit && onSubmit(email, filesContent.length === 0 ? false : true);
         setContent('');
-        onSubmit && onSubmit(content);
+        setFilesContent([]);
       }
     },
-    [content]
+    [content, filesContent]
   );
 
+  const beforeUpload = useCallback(
+    (file: RcFile) => {
+      let totalSize = file.size;
+      for (const file of filesContent) {
+        totalSize += file.size;
+      }
+      if (totalSize / 1024 ** 2 > 25) {
+        error({
+          title: 'Limit exceed',
+          content: 'Cannot select files more than 25MB in Total',
+        });
+      } else {
+        const { size, name, type, uid } = file;
+        file
+          .text()
+          .then((str) => {
+            console.log(str);
+            setFilesContent((state) => [...state, { size, type, filename: name, content: str, file, id: uid }]);
+          })
+          .catch(() =>
+            error({
+              title: 'Faild to parse the file to a text',
+              content:
+                "The process of parsing the file to text couldn't be done of some reason, we are sorry if you can not upload that file.\nSo please try again :)",
+            })
+          );
+      }
+      return false;
+    },
+    [filesContent]
+  );
+
+  const onRemove = useCallback((file: UploadFile<any>) => {
+    const uid = file.uid;
+    setFilesContent((state) => state.filter((file) => file.id !== uid));
+  }, []);
+
   return (
-    <TextArea
-      onKeyDown={onKeyDownHandler}
-      onChange={onChangeHandler}
-      placeholder={`Message to ${to}`}
-      value={content}
-      autoSize={{ maxRows: 5, minRows: 1 }}
-      className="textarea-chat"
-    />
+    <Row>
+      <Col span={4}>
+        <Upload beforeUpload={beforeUpload} fileList={filesContent.map((e) => e.file)} onRemove={onRemove}>
+          <Button>
+            <Add />
+          </Button>
+        </Upload>
+      </Col>
+      <Col span={20}>
+        <TextArea
+          onKeyDown={onKeyDownHandler}
+          onChange={onChangeHandler}
+          placeholder={`Message to ${to}`}
+          value={content}
+          autoSize={{ maxRows: 5, minRows: 1 }}
+          className="textarea-chat"
+        />
+      </Col>
+    </Row>
   );
 };

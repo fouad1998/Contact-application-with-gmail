@@ -5,7 +5,7 @@ import { Base64 } from 'js-base64';
 import { Loader } from './Loader/Loader';
 import ListMessages from './mail/ListMessages';
 import Editor from './mail/Editor';
-import Contacts from './mail/Contacts';
+import Contacts, { Contact } from './mail/Contacts';
 import Axios from 'axios';
 
 interface GmailInterface {}
@@ -23,6 +23,7 @@ export interface GmailContextInterface {
   loadingContacts: boolean;
   saveSettings: (settings: GmailSettings) => any;
   selectContact: (contact: { kickname: string; emails: string[] }) => any;
+  setContacts: (contacts: Contact[]) => any;
 }
 
 export const GmailContext = createContext<Partial<GmailContextInterface>>({});
@@ -74,7 +75,6 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
       });
       //@ts-ignore
       const token = gapi.client.getToken();
-      //@ts-ignore
       Axios.get(`https://www.google.com/m8/feeds/contacts/${email}/full?&alt=json&max-results=500&v=3.0&access_token=${token.access_token}`)
         .then(({ data }) => {
           console.log(data);
@@ -152,7 +152,6 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
                 format: 'full',
               });
               messages.push(request.result);
-              console.log(request.result, messages.length);
             }
             setLoading(false);
             setMessages(messages.reverse());
@@ -176,18 +175,35 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
   }, [state.currentContact, state.currentLabel]);
 
   const sendMessage = useCallback(
-    (content: string, headers = { From: state.userEmail, To: state.currentContact, Subject: '' }) => {
+    (
+      content: string,
+      multipart: boolean,
+      headers = { From: state.userEmail, To: state.currentContact, Subject: '', Date: new Date().toString() }
+    ) => {
       if (content !== '' && !/^\s+$/.test(content)) {
-        let email = '';
+        let email = multipart ? 'Content-Type: multipart/mixed; boundary="emplorium_boundary"\r\nMIME-Version: 1.0\r\n' : '';
+        email += `From: ${headers.From}
+To: ${headers.To}
+Subject: ${headers.Subject}
+Reply-To: ${headers.From}
+Date: ${headers.Date}
+${content}`;
 
-        for (const header in headers) {
-          email += `${header}: ${headers[header]}\r\n`;
-        }
-
-        email += `\r\n${content}`;
-
-        const base64EncodedEmail = Base64.encodeURI(email);
+        const base64EncodedEmail = Base64.encodeURI(email).replace(/\+/g, '-').replace(/\//g, '_');
         console.log(email, base64EncodedEmail);
+        const onSendSuccess = (e: { result: { id: string; labelIds: string[] } }) => {
+          const {
+            result: { id, labelIds },
+          } = e;
+          const found = labelIds.find((lable) => lable.toLocaleLowerCase() === 'sent');
+          if (found) {
+            // The message is sent correctly because it is in sent box
+          } else {
+            // Very weird, this error shouldn't be here.
+            // because this func is executed only when the request works
+          }
+        };
+        const onSendError = () => {};
         //@ts-ignore
         window.gapi.client.gmail.users.messages
           .send({
@@ -197,7 +213,7 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
             },
           })
           .then(
-            (e: any) => console.log('send', e),
+            (e: any) => {},
             (e: any) => console.error('error, ', e)
           );
       }
@@ -223,6 +239,13 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
     [state.currentContact]
   );
 
+  const setContacts = useCallback((contacts: Contact[]) => {
+    dispatch({
+      type: GMAIL_REDUCER_TYPE.SET_CONTACTS,
+      payload: { contacts },
+    });
+  }, []);
+
   const settingsSaveHandler = useCallback((settings: GmailSettings) => {
     dispatch({
       type: GMAIL_REDUCER_TYPE.SET_CURRENT_LABEL,
@@ -243,7 +266,7 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
   }, []);
 
   return (
-    <GmailContext.Provider value={{ state, saveSettings: settingsSaveHandler, selectContact, loadingContacts }}>
+    <GmailContext.Provider value={{ state, saveSettings: settingsSaveHandler, selectContact, setContacts, loadingContacts }}>
       <Row className="gmail-interface">
         <Col span={24} className="inherit-height">
           <Row className="inherit-height">
@@ -253,20 +276,22 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
                   <Contacts />
                 </Col>
                 <Col span={19} className="right-side">
-                  <Row className="message-info">
-                    {/** No selected contact */}
-                    {state.currentContact.length === 0 && (
-                      <Col span={24} className="no-selected-contact">
-                        No Contact Selected Yet!
-                      </Col>
-                    )}
-                    {/** Empty Box */}
-                    {state.currentContact.length > 0 && messages.length === 0 && (
-                      <Col span={24} className="empty-box">
-                        Empty box (No message is sent in this contact)
-                      </Col>
-                    )}
-                  </Row>
+                  {(state.currentContact === '' || (state.currentContact !== '' && messages.length === 0)) && (
+                    <Row className="message-info">
+                      {/** No selected contact */}
+                      {state.currentContact === '' && (
+                        <Col span={24} className="no-selected-contact">
+                          No Contact Selected Yet!
+                        </Col>
+                      )}
+                      {/** Empty Box */}
+                      {state.currentContact !== '' && messages.length === 0 && (
+                        <Col span={24} className="empty-box">
+                          Empty box (No message is sent in this contact)
+                        </Col>
+                      )}
+                    </Row>
+                  )}
                   {/** Loading messages */}
                   {loading && <Loader />}
                   {/** List messages (emails) */}

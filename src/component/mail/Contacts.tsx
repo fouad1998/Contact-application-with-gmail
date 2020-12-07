@@ -2,6 +2,7 @@ import { Col, Row, Tag, Button, Modal, Alert, Input, Select, Form } from 'antd';
 import React, { useCallback, useContext, useState } from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import SettingsIcon from '@material-ui/icons/Settings';
+import { Remove } from '@material-ui/icons';
 import { GmailContext, GmailSettings } from '../Gmail';
 import { Loader } from '../Loader/Loader';
 
@@ -13,7 +14,7 @@ export interface Contact {
 interface ContactProps {}
 
 const Contacts: React.FC<ContactProps> = () => {
-  const { state, loadingContacts, saveSettings, selectContact } = useContext(GmailContext);
+  const { state, loadingContacts, saveSettings, selectContact, setContacts } = useContext(GmailContext);
 
   const [contactAdd, setContactAdd] = useState<{ addContact: boolean; errorAdding: boolean; errorContent: string; contact: Contact }>({
     addContact: false,
@@ -21,7 +22,7 @@ const Contacts: React.FC<ContactProps> = () => {
     errorContent: '',
     contact: {
       kickname: '',
-      emails: [],
+      emails: [''],
     },
   });
 
@@ -43,11 +44,26 @@ const Contacts: React.FC<ContactProps> = () => {
     setContactAdd((state) => ({ ...state, addContact: false }));
   }, []);
 
-  const addContactEmailChangeHandler = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    event.stopPropagation();
-    const value = event.target.value;
-    //FIXME: handle adding more than one email in mean time
-    setContactAdd((state) => ({ ...state, contact: { ...state.contact } }));
+  const addContactEmailChangeHandler = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>, index: number) => {
+      event.stopPropagation();
+      const value = event.target.value;
+      contactAdd.contact.emails[index] = value;
+      setContactAdd((state) => ({ ...state, contact: { ...state.contact } }));
+    },
+    [contactAdd]
+  );
+
+  const removeContactEmailHandler = useCallback(
+    (index: number) => {
+      contactAdd.contact.emails.splice(index, 1);
+      setContactAdd((state) => ({ ...state }));
+    },
+    [contactAdd]
+  );
+
+  const addContactEmailHandler = useCallback(() => {
+    setContactAdd((state) => ({ ...state, contact: { ...state.contact, emails: [...state.contact.emails, ''] } }));
   }, []);
 
   const addContactKicknameChangeHandler = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,28 +75,44 @@ const Contacts: React.FC<ContactProps> = () => {
   const addContactSaveHandler = useCallback(
     (event: React.MouseEvent<HTMLElement, MouseEvent>) => {
       event.stopPropagation();
-      //FIXME: handle the add contact
-      if (typeof contactAdd.contact.emails === 'string' && contactAdd.contact.emails !== '') {
-        if (/^[a-zA-Z0-9\.\-]+@[a-zA-Z0-9]+\.[a-z]+$/.test(contactAdd.contact.emails as string)) {
-          if (state!.contacts.findIndex((contact) => contact.emails === contactAdd.contact.emails) === -1) {
-            //setContacts((state) => [...state, { ...(contactAdd.contact as Contact) }]);
-            setContactAdd({
-              errorAdding: false,
-              addContact: false,
-              contact: {
-                kickname: '',
-                emails: [],
-              },
-              errorContent: '',
-            });
-          } else {
-            setContactAdd((state) => ({ ...state, errorAdding: true, errorContent: 'Contact already exists' }));
-          }
-        } else {
-          setContactAdd((state) => ({ ...state, errorAdding: true, errorContent: 'The given email it is not correct mail address' }));
-        }
+      if (contactAdd.contact.kickname === '') {
+        setContactAdd((state) => ({ ...state, errorAdding: true, errorContent: 'Cannot accept an empty name' }));
       } else {
-        setContactAdd((state) => ({ ...state, errorAdding: true, errorContent: 'Cannot add contact without email address' }));
+        if (state!.contacts.map((contact) => contact.kickname).includes(contactAdd.contact.kickname)) {
+          setContactAdd((state) => ({ ...state, errorAdding: true, errorContent: 'Given name already exists' }));
+        } else {
+          for (const contact of contactAdd.contact.emails) {
+            if (typeof contact === 'string' && contact !== '') {
+              if (/^[a-zA-Z0-9\.\-]+@[a-zA-Z0-9\.]+\.[a-zA-Z0-9]+$/.test(contact)) {
+                if (state!.contacts.findIndex((contactCache) => contactCache.emails.includes(contact)) === -1) {
+                  setContacts && setContacts([...state!.contacts, { ...(contactAdd.contact as Contact) }]);
+                  setContactAdd({
+                    errorAdding: false,
+                    addContact: false,
+                    contact: {
+                      kickname: '',
+                      emails: [''],
+                    },
+                    errorContent: '',
+                  });
+                } else {
+                  setContactAdd((state) => ({ ...state, errorAdding: true, errorContent: `Contact ${contact} already exists` }));
+                  return void 0;
+                }
+              } else {
+                setContactAdd((state) => ({
+                  ...state,
+                  errorAdding: true,
+                  errorContent: `The given email (${contact}) it is not correct mail address`,
+                }));
+                return void 0;
+              }
+            } else {
+              setContactAdd((state) => ({ ...state, errorAdding: true, errorContent: 'Cannot add contact without email address' }));
+              return void 0;
+            }
+          }
+        }
       }
     },
     [contactAdd]
@@ -117,6 +149,7 @@ const Contacts: React.FC<ContactProps> = () => {
   }, []);
 
   const settingsSaveHandler = useCallback(() => {
+    setSettings((state) => ({ ...state, showSettings: false }));
     saveSettings && saveSettings(settings);
   }, [settings]);
 
@@ -132,15 +165,17 @@ const Contacts: React.FC<ContactProps> = () => {
             const isActive =
               state!.currentContact === 'ALL'
                 ? contact.emails.reduce((acc, email) => acc && state!.currentContact.includes(email), true)
-                : contact.emails.indexOf(state!.currentContact);
+                : contact.emails.includes(state!.currentContact);
 
             return (
               <Col span={24} className={'item' + (isActive ? ' active' : '')} key={index} onClick={() => selectContact && selectContact(contact)}>
                 {contact.kickname}
                 <Row>
                   <Col span={24}>
-                    {contact.emails.map((email) => (
-                      <Tag color="blue">{email}</Tag>
+                    {contact.emails.map((email, index) => (
+                      <Tag color="blue" key={index}>
+                        {email}
+                      </Tag>
                     ))}
                   </Col>
                 </Row>
@@ -176,15 +211,36 @@ const Contacts: React.FC<ContactProps> = () => {
             </Col>
           )}
           <Col span={24} className="section">
-            <Input value={contactAdd.contact.kickname} addonBefore={'Kickname'} onChange={addContactKicknameChangeHandler} />
+            <Row>
+              <Col span={6}>Kickname</Col>
+              <Col span={18}>
+                <Input value={contactAdd.contact.kickname} onChange={addContactKicknameChangeHandler} />
+              </Col>
+            </Row>
           </Col>
           <Col span={24} className="section">
             <Row>
-              {contactAdd.contact.emails!.map((email, index) => (
-                <Col span={24} key={index}>
-                  <Input value={email} addonBefore={'Email'} onChange={addContactEmailChangeHandler} />
-                </Col>
-              ))}
+              <Col span={6}>Email</Col>
+              <Col span={18}>
+                {contactAdd.contact.emails!.map((email, index) => (
+                  <Row key={index}>
+                    <Col span={18}>
+                      <Input value={email} onChange={(e) => addContactEmailChangeHandler(e, index)} />
+                    </Col>
+                    <Col span={4} offset={2}>
+                      {index === 0 ? (
+                        <Button onClick={addContactEmailHandler}>
+                          <AddIcon />
+                        </Button>
+                      ) : (
+                        <Button onClick={() => removeContactEmailHandler(index)}>
+                          <Remove />
+                        </Button>
+                      )}
+                    </Col>
+                  </Row>
+                ))}
+              </Col>
             </Row>
           </Col>
         </Row>

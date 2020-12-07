@@ -1,4 +1,6 @@
+import { FormatSizeTwoTone } from '@material-ui/icons';
 import { Col, Row, Typography } from 'antd';
+import { Base64 } from 'js-base64';
 import React from 'react';
 import { FileIcon, defaultStyles } from 'react-file-icon';
 
@@ -20,20 +22,61 @@ const AttachedFiles: React.FC<AttachedFilesProps> = ({ message }) => {
   const {
     payload: { parts },
   } = message;
-  const attachementParts = Array.isArray(parts) ? parts.filter((part: any) => part.body.attachmentId !== void 0) : [];
+
+  const downloadFile = async (attachementId: string, part: any) => {
+    const { filename, mimeType } = part;
+    const params = {
+      userId: 'me',
+      messageId: message.id,
+      id: attachementId,
+    };
+    console.log('Sending request to download', params);
+    //@ts-ignore
+    const response = await gapi.client.gmail.users.messages.attachments.get(params);
+    const { data, size } = response.result;
+    const contentType = mimeType || '';
+    const sliceSize = size || 512;
+
+    var byteCharacters = atob(data.replace(/-/g, '+').replace(/_/g, '/'));
+    var byteArrays = [];
+
+    for (var offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+      var slice = byteCharacters.slice(offset, offset + sliceSize);
+
+      var byteNumbers = new Array(slice.length);
+      for (var i = 0; i < slice.length; i++) {
+        byteNumbers[i] = slice.charCodeAt(i);
+      }
+
+      var byteArray = new Uint8Array(byteNumbers);
+
+      byteArrays.push(byteArray);
+    }
+
+    const blob = new Blob(byteArrays, { type: contentType });
+    let urlBlob = URL.createObjectURL(blob);
+    console.log(urlBlob);
+    const a = document.createElement('a');
+    a.href = urlBlob;
+    a.download = filename;
+    a.click();
+    a.remove();
+  };
+
+  const attachmentParts = Array.isArray(parts) ? parts.filter((part: any) => part.body.attachmentId !== void 0) : [];
   return (
     <Row className="attachements">
-      {attachementParts.length > 0 && (
+      {attachmentParts.length > 0 && (
         <Col span={24} className="attachement-title">
           <Typography.Title level={5}>Attached files</Typography.Title>
         </Col>
       )}
-      {attachementParts.map((attachementPart: any, index: number) => {
+      {attachmentParts.map((attachementPart: any, index: number) => {
         const extention = attachementPart.filename.replace(/^.+\.([a-zA-Z0-9]+)$/, '$1');
         const size = transformFileSizeUnit(attachementPart.body.size);
-
+        console.log(attachementPart);
         return (
-          <Col span={4} key={index} className="file-attached">
+          <Col span={4} key={index} className="file-attached" onClick={() => downloadFile(attachementPart.body.attachmentId, attachementPart)}>
             <Row>
               <Col span={24} className="file-icon">
                 <span className="file-size">{size}</span>
