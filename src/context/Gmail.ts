@@ -1,6 +1,6 @@
 import { createContext } from 'react';
-import { GmailSettings } from '../components/Gmail';
 import { Contact } from '../components/mail/Contacts';
+import { GmailSettings } from '../interfaces/gmail/GmailSettings';
 import { GmailReducerInterface } from '../reducer/gmailReducer';
 
 export interface GmailContextInterface {

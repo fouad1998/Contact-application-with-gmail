@@ -1,7 +1,7 @@
 import { Modal, Row, Col, Form, Select } from 'antd';
 import React, { useCallback, useContext, useState } from 'react';
 import { GmailContext } from '../../../context/Gmail';
-import { GmailSettings } from '../../Gmail';
+import { GmailSettings } from '../../../interfaces/gmail/GmailSettings';
 
 interface SettingsProps {
   visible: boolean;

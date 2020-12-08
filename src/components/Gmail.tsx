@@ -1,28 +1,25 @@
 import { Col, Row } from 'antd';
 import React, { useCallback, useEffect, useReducer, useState } from 'react';
 import { GmailReducer, GMAIL_REDUCER_TYPE } from '../reducer/gmailReducer';
-import { Base64 } from 'js-base64';
 import { Loader } from './Loader/Loader';
 import ListMessages from './mail/ListMessages';
 import Editor from './mail/Editor';
 import Contacts, { Contact } from './mail/Contacts';
 import { useSnackbar } from 'notistack';
-import Axios from 'axios';
 import { Button, Typography } from '@material-ui/core';
 import { initialReducerValue } from '../constant/constant';
-import { getReceiveEmail } from '../utils/emails';
 import { GmailContext, GmailContextInterface } from '../context/Gmail';
+import { loadContacts } from '../utils/gmail/LoadContactGmail';
+import { getProfileEmail } from '../utils/gmail/GetProfileEmail';
+import { getLabels } from '../utils/gmail/Label';
+import { getListEmailId } from '../utils/gmail/ListEmailId';
+import { getEmailsContent } from '../utils/gmail/EmailContentFetch';
+import { sendMail } from '../utils/gmail/SendMail';
+import { GmailSettings } from '../interfaces/gmail/GmailSettings';
 
-interface GmailInterface {}
+interface GmailProps {}
 
-export interface GmailSettings {
-  selectedLabel: string;
-  messageShowModel: string;
-  editor: string;
-  messageThread: string;
-}
-
-const Gmail: React.FC<GmailInterface> = ({}) => {
+const Gmail: React.FC<GmailProps> = () => {
   const [state, dispatch] = useReducer(GmailReducer, initialReducerValue);
   const [messages, setMessages] = useState<Array<any>>([]);
   const [messagesStatus, setMessagesStatus] = useState<{ loading: boolean; error: boolean }>({
@@ -35,73 +32,6 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
   });
   const { enqueueSnackbar } = useSnackbar();
 
-  // Load contacts from gmail API
-  const loadContacts = (email: string) => {
-    //@ts-ignore
-    const token = gapi.client.getToken();
-
-    // Success getting the contacts
-    const onContactsSuccess = (response: any) => {
-      const { data } = response;
-      const contacts = [];
-
-      //@ts-ignore
-      for (let i = 0; i < data.feed.entry.length; i++) {
-        //@ts-ignore
-        const entry = data.feed.entry[i];
-        const contact = {
-          kickname: entry['title']['$t'],
-          emails: [],
-        };
-
-        if (entry['gd$email']) {
-          const emails = entry['gd$email'];
-          for (let j = 0, email; (email = emails[j]); j++) {
-            //@ts-ignore
-            contact['emails'].push(email['address']);
-          }
-        }
-
-        if (!contact['kickname']) {
-          contact['kickname'] = contact['emails'][0] || '<Unknown>';
-        }
-
-        contacts.push(contact);
-      }
-
-      dispatch({
-        type: GMAIL_REDUCER_TYPE.SET_CONTACTS,
-        payload: { contacts: contacts },
-      });
-      //TODO: After make the error to true
-      setContactsStatus((state) => ({ ...state, error: true }));
-    };
-
-    // Faild loading contacts
-    const onContactsFaild = () => {
-      setContactsStatus((state) => ({ ...state, error: true }));
-      enqueueSnackbar(
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Typography>Error loading the contacts...</Typography>
-          </Col>
-          <Col>
-            <Button onClick={() => loadContacts(email)}>Reload</Button>
-          </Col>
-        </Row>,
-        { variant: 'error' }
-      );
-    };
-
-    // Fetch the contacts
-    Axios.get(
-      `https://www.google.com/m8/feeds/contacts/${email}/full?&alt=json&max-results=500&v=3.0&access_token=${token.access_token}`
-    )
-      .then(onContactsSuccess)
-      .catch(onContactsFaild)
-      .finally(() => setContactsStatus((state) => ({ ...state, loading: false })));
-  };
-
   // Load messages
   const loadMessages = () => {
     if (state.currentContact.length === 0) {
@@ -109,7 +39,6 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
     } else {
       const contact = state.cache.find((contact) => {
         const emails = contact.email;
-        //@ts-ignore
         const found = emails.reduceRight(
           (currentState, email) => currentState && state.currentContact.includes(email),
           true
@@ -121,60 +50,34 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
         setMessages(contact.messages.map((message) => message.message).reverse());
       } else {
         setMessagesStatus((state) => ({ ...state, loading: true }));
-
-        // Function who retreive the email content including html and attachment
-        const fetchEachEmailWithWholeContent = async (res: any) => {
-          const messages: { email: string; message: any }[] = [];
-          for (const message of res.result.messages) {
-            //@ts-ignore
-            const request = await gapi.client.gmail.users.messages.get({
-              userId: 'me',
-              id: message.id,
-              format: 'full',
-            });
-            messages.push({ email: getReceiveEmail(request.result, state.userEmail), message: request.result });
-          }
-          dispatch({
-            type: GMAIL_REDUCER_TYPE.SET_MESSAGES,
-            payload: {
-              cache: [{ email: state.selectedContact.emails, messages: messages, nextPageToken: res.nextPageToken }],
-            },
-          });
-          setMessages(messages.map((e) => e.message).reverse());
-          setMessagesStatus((state) => ({ ...state, loading: false }));
-        };
-
         // Load Email List for specific query
         const loadEmailList = () => {
-          // When the user select the ALL as current contact that means we have to send the mail
-          // to all email that user has
-          const query =
-            state.currentContact === 'ALL'
-              ? state.selectedContact.emails.map((email) => `from:${email} OR to:${email}`).join(' OR ')
-              : `from:${state.currentContact} OR to:${state.currentContact}`;
-
-          // Load Email list (emails id)
-          //@ts-ignore
-          const request = gapi.client.gmail.users.messages.list({
-            userId: 'me',
-            labelIds: state.currentLabel === 'ALL' ? void 0 : state.currentLabel,
-            maxResults: 20,
-            q: query,
-          });
-
-          // Start the request
-          request.execute((res: any) => {
-            if (res.error === void 0) {
-              // No error in this case
-              if (res.result.resultSizeEstimate > 0) {
-                // The query has some results
-                fetchEachEmailWithWholeContent(res);
+          getListEmailId(state.currentContact, state.currentLabel, state.selectedContact.emails)
+            .then((response) => {
+              if (response.messagesId.length > 0) {
+                getEmailsContent(response.messagesId, state.userEmail).then((emailsContent) => {
+                  dispatch({
+                    type: GMAIL_REDUCER_TYPE.SET_MESSAGES,
+                    payload: {
+                      cache: [
+                        {
+                          email: state.selectedContact.emails,
+                          messages: emailsContent,
+                          nextPageToken: response.nextTokenPage,
+                        },
+                      ],
+                    },
+                  });
+                  setMessages(messages.map((e) => e.message).reverse());
+                  setMessagesStatus((state) => ({ ...state, loading: false }));
+                });
               } else {
                 // no message in discussion
                 setMessages([]);
                 setMessagesStatus((state) => ({ ...state, loading: false }));
               }
-            } else {
+            })
+            .catch(() => {
               // show error message by using res.result.message
               setMessagesStatus((state) => ({ ...state, loading: false }));
               enqueueSnackbar(
@@ -188,8 +91,7 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
                 </Row>,
                 { variant: 'error' }
               );
-            }
-          });
+            });
         };
 
         // Starts
@@ -199,30 +101,45 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
   };
 
   useEffect(() => {
-    //@ts-ignore
-    const request = gapi.client.gmail.users.labels.list({
-      userId: 'me',
-    });
-    //@ts-ignore
-    const profileRequest = gapi.client.gmail.users.getProfile({
-      userId: 'me',
-    });
+    getProfileEmail()
+      .then((email) => {
+        // Load contacts
+        loadContacts(email)
+          .then((contacts) => {
+            dispatch({
+              type: GMAIL_REDUCER_TYPE.SET_CONTACTS,
+              payload: { contacts: contacts },
+            });
+            //TODO: After make the error to true
+            setContactsStatus((state) => ({ ...state, error: true }));
+          })
+          .catch(() => {
+            // Faild loading contacts
+            setContactsStatus((state) => ({ ...state, error: true }));
+            enqueueSnackbar(
+              <Row justify="space-between" align="middle">
+                <Col>
+                  <Typography>Error loading the contacts...</Typography>
+                </Col>
+                <Col>
+                  <Button onClick={() => loadContacts(email)}>Reload</Button>
+                </Col>
+              </Row>,
+              { variant: 'error' }
+            );
+          });
 
-    request.execute((response: any) => {
-      console.log(response);
+        dispatch({
+          type: GMAIL_REDUCER_TYPE.SET_USER_EMAIL,
+          payload: { userEmail: email },
+        });
+      })
+      .catch(() => {});
+
+    getLabels().then((labels) => {
       dispatch({
         type: GMAIL_REDUCER_TYPE.SET_LABELS,
-        payload: { labels: ['ALL', ...response.result.labels.map((e: any) => e.id)] },
-      });
-    });
-
-    profileRequest.execute((response: any) => {
-      const email = response.result.emailAddress;
-      // Load contacts
-      loadContacts(email);
-      dispatch({
-        type: GMAIL_REDUCER_TYPE.SET_USER_EMAIL,
-        payload: { userEmail: response.result.emailAddress },
+        payload: { labels: ['ALL', ...labels] },
       });
     });
   }, []);
@@ -231,23 +148,14 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
 
   const sendMessage = useCallback(
     (content: string, header: string = '') => {
-      const headers = { From: state.userEmail, To: state.currentContact, Subject: '', Date: new Date().toString() };
-      // Success send message
-      const onSendSuccess = async (e: { result: { id: string; labelIds: string[] } }) => {
-        const {
-          result: { id, labelIds },
-        } = e;
-        const found = labelIds.find((lable) => lable.toLocaleLowerCase() === 'sent');
-        if (found) {
-          // The message is sent correctly because it is in sent box
-
-          // Now download the message from gmail
-          //@ts-ignore
-          const message = await gapi.client.gmail.users.messages.get({
-            userId: 'me',
-            id,
-          });
-          setMessages((state) => [...state, message.result]);
+      sendMail(
+        content,
+        { From: state.userEmail, To: state.currentContact, Subject: '', Date: new Date().toString() },
+        header
+      )
+        .then((message) => {
+          //TODO: ADD message to cache
+          setMessages((state) => [...state, message]);
           enqueueSnackbar(
             <Row justify="space-between" align="middle">
               <Col>
@@ -259,51 +167,20 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
             </Row>,
             { variant: 'success' }
           );
-        } else {
-          // Very weird, this error shouldn't be here.
-          // because this func is executed only when the request works
-          onSendError();
-        }
-      };
-
-      // Faild to send email
-      const onSendError = () => {
-        enqueueSnackbar(
-          <Row justify="space-between" align="middle">
-            <Col>
-              <Typography>Faild to send the email</Typography>
-            </Col>
-            <Col>
-              <Button>Try Again</Button>
-            </Col>
-          </Row>,
-          { variant: 'error' }
-        );
-      };
-
-      // If the email to send is not empty and is not a combination of special characters only
-      if (content !== '' && !/^\s+$/.test(content)) {
-        //Create the email content
-        const email = `${header}Content-Transfer-Encoding: base64
-From: ${headers.From}
-To: ${headers.To}
-Subject: ${headers.Subject}
-Reply-To: ${headers.From}
-Date: ${headers.Date}
-
-${content}`;
-        // Encode the email to BASE64
-        const base64EncodedEmail = Base64.encodeURI(email).replace(/\+/g, '-').replace(/\//g, '_');
-        //@ts-ignore
-        window.gapi.client.gmail.users.messages
-          .send({
-            userId: 'me',
-            resource: {
-              raw: base64EncodedEmail,
-            },
-          })
-          .then(onSendSuccess, onSendError);
-      }
+        })
+        .catch(() => {
+          enqueueSnackbar(
+            <Row justify="space-between" align="middle">
+              <Col>
+                <Typography>Faild to send the email</Typography>
+              </Col>
+              <Col>
+                <Button>Try Again</Button>
+              </Col>
+            </Row>,
+            { variant: 'error' }
+          );
+        });
     },
     [state.currentContact, state.userEmail]
   );

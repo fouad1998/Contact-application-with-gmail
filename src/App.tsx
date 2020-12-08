@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout, Row, Col } from 'antd';
 import Gmail from './components/Gmail';
 import Signin from './components/Signin';
@@ -7,7 +7,14 @@ import 'antd/dist/antd.css';
 import './scss/home.scss';
 import './scss/signin.scss';
 import './scss/mailBoxInterface.scss';
-// import '../node_modules/react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
+
+declare global {
+  interface Window {
+    gapi: any;
+  }
+}
+
+window.gapi = window.gapi || {};
 
 export default function App() {
   const [isAuthorized, setIsAuthorized] = useState(false);
@@ -17,10 +24,8 @@ export default function App() {
 
   useEffect(() => {
     const LoadGoogleAuth = async () => {
-      //@ts-ignore
-      gapi.load('client:auth2', {
+      window.gapi.load('client:auth2', {
         callback: () => {
-          //@ts-ignore
           window.gapi.client
             .init({
               // Client id you can get it from the google console
