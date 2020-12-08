@@ -1,6 +1,6 @@
 import { Col, Row } from 'antd';
-import React, { createContext, useCallback, useEffect, useReducer, useState } from 'react';
-import { GmailReducer, GmailReducerInterface, GMAIL_REDUCER_TYPE } from '../reducer/gmailReducer';
+import React, { useCallback, useEffect, useReducer, useState } from 'react';
+import { GmailReducer, GMAIL_REDUCER_TYPE } from '../reducer/gmailReducer';
 import { Base64 } from 'js-base64';
 import { Loader } from './Loader/Loader';
 import ListMessages from './mail/ListMessages';
@@ -17,7 +17,6 @@ interface GmailInterface {}
 
 export interface GmailSettings {
   selectedLabel: string;
-  showSettings: boolean;
   messageShowModel: string;
   editor: string;
   messageThread: string;
@@ -27,17 +26,17 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
   const [state, dispatch] = useReducer(GmailReducer, initialReducerValue);
   const [messages, setMessages] = useState<Array<any>>([]);
   const [messagesStatus, setMessagesStatus] = useState<{ loading: boolean; error: boolean }>({
-    loading: true,
+    loading: false,
     error: false,
   });
   const [contactsStatus, setContactsStatus] = useState<{ loading: boolean; error: boolean }>({
     loading: true,
-    error: false,
+    error: true,
   });
   const { enqueueSnackbar } = useSnackbar();
 
   // Load contacts from gmail API
-  const loadContacts = () => {
+  const loadContacts = (email: string) => {
     //@ts-ignore
     const token = gapi.client.getToken();
 
@@ -45,6 +44,7 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
     const onContactsSuccess = (response: any) => {
       const { data } = response;
       const contacts = [];
+
       //@ts-ignore
       for (let i = 0; i < data.feed.entry.length; i++) {
         //@ts-ignore
@@ -68,11 +68,13 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
 
         contacts.push(contact);
       }
+
       dispatch({
         type: GMAIL_REDUCER_TYPE.SET_CONTACTS,
         payload: { contacts: contacts },
       });
-      setContactsStatus((state) => ({ ...state, error: false }));
+      //TODO: After make the error to true
+      setContactsStatus((state) => ({ ...state, error: true }));
     };
 
     // Faild loading contacts
@@ -84,7 +86,7 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
             <Typography>Error loading the contacts...</Typography>
           </Col>
           <Col>
-            <Button onClick={loadContacts}>Reload</Button>
+            <Button onClick={() => loadContacts(email)}>Reload</Button>
           </Col>
         </Row>,
         { variant: 'error' }
@@ -100,35 +102,8 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
       .finally(() => setContactsStatus((state) => ({ ...state, loading: false })));
   };
 
-  useEffect(() => {
-    //@ts-ignore
-    const request = gapi.client.gmail.users.labels.list({
-      userId: 'me',
-    });
-    //@ts-ignore
-    const profileRequest = gapi.client.gmail.users.getProfile({
-      userId: 'me',
-    });
-
-    request.execute((response: any) => {
-      console.log(response);
-      dispatch({
-        type: GMAIL_REDUCER_TYPE.SET_LABELS,
-        payload: { labels: ['ALL', ...response.result.labels.map((e: any) => e.id)] },
-      });
-    });
-
-    profileRequest.execute((response: any) => {
-      const email = response.result.emailAddress;
-      console.log(email);
-      dispatch({
-        type: GMAIL_REDUCER_TYPE.SET_USER_EMAIL,
-        payload: { userEmail: response.result.emailAddress },
-      });
-    });
-  }, []);
-
-  useEffect(() => {
+  // Load messages
+  const loadMessages = () => {
     if (state.currentContact.length === 0) {
       setMessages([]);
     } else {
@@ -141,6 +116,7 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
         );
         return found;
       });
+
       if (contact) {
         setMessages(contact.messages.map((message) => message.message).reverse());
       } else {
@@ -220,7 +196,38 @@ const Gmail: React.FC<GmailInterface> = ({}) => {
         loadEmailList();
       }
     }
-  }, [state.currentContact, state.currentLabel, state.selectedContact, state.cache]);
+  };
+
+  useEffect(() => {
+    //@ts-ignore
+    const request = gapi.client.gmail.users.labels.list({
+      userId: 'me',
+    });
+    //@ts-ignore
+    const profileRequest = gapi.client.gmail.users.getProfile({
+      userId: 'me',
+    });
+
+    request.execute((response: any) => {
+      console.log(response);
+      dispatch({
+        type: GMAIL_REDUCER_TYPE.SET_LABELS,
+        payload: { labels: ['ALL', ...response.result.labels.map((e: any) => e.id)] },
+      });
+    });
+
+    profileRequest.execute((response: any) => {
+      const email = response.result.emailAddress;
+      // Load contacts
+      loadContacts(email);
+      dispatch({
+        type: GMAIL_REDUCER_TYPE.SET_USER_EMAIL,
+        payload: { userEmail: response.result.emailAddress },
+      });
+    });
+  }, []);
+
+  useEffect(loadMessages, [state.currentContact, state.currentLabel, state.selectedContact, state.cache]);
 
   const sendMessage = useCallback(
     (content: string, header: string = '') => {
@@ -353,53 +360,49 @@ ${content}`;
     saveSettings: settingsSaveHandler,
     selectContact,
     setContacts,
-    reloadContacts,
-    reloadMessages,
+    reloadContacts: () => loadContacts(state.currentContact),
+    reloadMessages: loadMessages,
   };
 
   return (
     <GmailContext.Provider value={contextValues}>
       <Row className="gmail-interface">
         <Col span={24} className="inherit-height">
-          <Row className="inherit-height">
-            <Col span={24} className="inherit-height">
-              <Row className="inherit-height application">
-                <Col span={5} className="left-side">
-                  <Contacts />
-                </Col>
-                <Col span={19} className="right-side">
-                  {(state.currentContact === '' || (state.currentContact !== '' && messages.length === 0)) && (
-                    <Row className="message-info">
-                      {/** No selected contact */}
-                      {state.currentContact === '' && (
-                        <Col span={24} className="no-selected-contact">
-                          No Contact Selected Yet!
-                        </Col>
-                      )}
-                      {/** Empty Box */}
-                      {state.currentContact !== '' && messages.length === 0 && (
-                        <Col span={24} className="empty-box">
-                          Empty box (No message is sent in this contact)
-                        </Col>
-                      )}
-                    </Row>
+          <Row className="inherit-height application">
+            <Col span={5} className="left-side">
+              <Contacts />
+            </Col>
+            <Col span={19} className="right-side">
+              {(state.currentContact === '' || (state.currentContact !== '' && messages.length === 0)) && (
+                <Row className="message-info">
+                  {/** No selected contact */}
+                  {state.currentContact === '' && (
+                    <Col span={24} className="no-selected-contact">
+                      No Contact Selected Yet!
+                    </Col>
                   )}
-                  {/** Loading messages */}
-                  {messagesStatus.loading && <Loader />}
-                  {/** List messages (emails) */}
-                  {messages.length > 0 && (
-                    <ListMessages
-                      messageShowModel={state.messageShowModel}
-                      messages={messages}
-                      userEmail={state.userEmail}
-                    />
+                  {/** Empty Box */}
+                  {state.currentContact !== '' && messages.length === 0 && (
+                    <Col span={24} className="empty-box">
+                      Empty box (No message is sent in this contact)
+                    </Col>
                   )}
-                  {/** The editor (input) */}
-                  {state.currentContact.length > 0 && (
-                    <Editor currentContact={state.currentContact} editor={state.editor} sendMessage={sendMessage} />
-                  )}
-                </Col>
-              </Row>
+                </Row>
+              )}
+              {/** Loading messages */}
+              {messagesStatus.loading && <Loader />}
+              {/** List messages (emails) */}
+              {messages.length > 0 && (
+                <ListMessages
+                  messageShowModel={state.messageShowModel}
+                  messages={messages}
+                  userEmail={state.userEmail}
+                />
+              )}
+              {/** The editor (input) */}
+              {state.currentContact.length > 0 && (
+                <Editor currentContact={state.currentContact} editor={state.editor} sendMessage={sendMessage} />
+              )}
             </Col>
           </Row>
         </Col>

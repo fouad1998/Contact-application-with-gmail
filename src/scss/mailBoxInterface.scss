@@ -10,7 +10,7 @@
   & .application {
     flex-wrap: nowrap;
 
-    .left-side {
+    div.left-side {
       height: inherit;
       max-height: inherit;
       min-height: inherit;
@@ -282,19 +282,7 @@
   }
 }
 
-.loader {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: white;
-  color: red;
-  display: flex;
-  z-index: 1000 !important;
-  justify-content: center;
-  align-items: center;
-}
-
 @import './mail/attachedFile.scss';
 @import './mail/editor.scss';
+@import './Components/ErrorLoading.scss';
+@import './Components/Loader.scss';

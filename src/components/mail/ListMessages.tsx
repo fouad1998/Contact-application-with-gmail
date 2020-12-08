@@ -4,7 +4,7 @@ import Headers from './Headers';
 import React, { useContext } from 'react';
 import { parse } from 'node-html-parser';
 import AttachedFiles from './AttachedFiles';
-import { GmailContext } from '../Gmail';
+import { GmailContext } from '../../context/Gmail';
 
 interface ListMessagesProps {
   messages: Array<any>;
@@ -61,7 +61,8 @@ const ListMessages: React.FC<ListMessagesProps> = ({ messages, messageShowModel,
       <Col span={24} className="messages-container">
         <Row>
           {messages.map((message) => {
-            const sameUser = message.payload.headers.find((header: any) => header.name === 'From').value.indexOf(userEmail) !== -1;
+            const sameUser =
+              message.payload.headers.find((header: any) => header.name === 'From').value.indexOf(userEmail) !== -1;
             const subject = message.payload.headers.find((header: any) => header.name === 'Subject').value;
             if (messageShowModel !== 'complete as html') {
               const messageContent = messageShowModel === 'snippet' ? message.snippet : getMessageBodyAsText(message);
@@ -76,7 +77,11 @@ const ListMessages: React.FC<ListMessagesProps> = ({ messages, messageShowModel,
                             <Tag color="green">Subject: {subject}</Tag>
                           </Col>
                         )}
-                        <Col span={24} className="message-content" dangerouslySetInnerHTML={{ __html: messageContent }}></Col>
+                        <Col
+                          span={24}
+                          className="message-content"
+                          dangerouslySetInnerHTML={{ __html: messageContent }}
+                        ></Col>
                         <Col span={24} className="attached-files">
                           <AttachedFiles message={message} />
                         </Col>
@@ -109,7 +114,10 @@ const ListMessages: React.FC<ListMessagesProps> = ({ messages, messageShowModel,
                               <Headers headers={message.payload.headers} />
                             </Col>
                             <Col span={24}>
-                              <div dangerouslySetInnerHTML={{ __html: getMessageBodyAsHTML(message) }} className="iframes" />
+                              <div
+                                dangerouslySetInnerHTML={{ __html: getMessageBodyAsHTML(message) }}
+                                className="iframes"
+                              />
                             </Col>
                             <Col span={24} className="attached-files">
                               <AttachedFiles message={message} />

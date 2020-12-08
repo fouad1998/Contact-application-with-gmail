@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Layout, Row, Col } from 'antd';
-import Gmail from './component/Gmail';
-import Signin from './component/Signin';
+import Gmail from './components/Gmail';
+import Signin from './components/Signin';
 import { SnackbarProvider } from 'notistack';
 import 'antd/dist/antd.css';
 import './scss/home.scss';
