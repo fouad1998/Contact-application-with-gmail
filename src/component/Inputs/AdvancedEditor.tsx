@@ -5,7 +5,7 @@ import 'react-quill/dist/quill.snow.css'; // ES6
 
 interface AdvancedEditorProps {
   to: string;
-  onSubmit: (content: string, multipart: boolean) => any;
+  onSubmit: (content: string, header: string) => any;
 }
 
 const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ to, onSubmit }) => {
@@ -20,11 +20,7 @@ const AdvancedEditor: React.FC<AdvancedEditorProps> = ({ to, onSubmit }) => {
   }, []);
 
   const onSendClickHandler = useCallback(() => {
-    const email = `
-Content-Type: text/html; charset="UTF-8"
-${content}
-`;
-    onSubmit(email, false);
+    onSubmit(content, 'Content-Type: text/html; charset="UTF-8"\r\n');
     setContent('');
   }, [content]);
 

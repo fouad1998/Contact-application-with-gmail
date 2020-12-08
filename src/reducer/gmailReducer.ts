@@ -14,7 +14,7 @@ export enum GMAIL_REDUCER_TYPE {
 }
 
 export interface GmailReducerInterface {
-  cache: Array<{ email: string[]; nextPageToken: string; messages: Array<string> }>;
+  cache: Array<{ email: string[]; nextPageToken: string; messages: Array<{ email: string; message: any }> }>;
   nextPageToken: string;
   currentLabel: string;
   labels: string[];
@@ -85,6 +85,29 @@ export const GmailReducer = (state: GmailReducerInterface, action: { type: GMAIL
     case GMAIL_REDUCER_TYPE.SET_EDITOR_TYPE: {
       if (typeof action.payload.messageThread === 'string') {
         return { ...state, messageThread: action.payload.messageThread };
+      }
+      break;
+    }
+
+    case GMAIL_REDUCER_TYPE.SET_MESSAGES: {
+      const { cache: Messages } = action.payload;
+      if (typeof Messages === 'object' && Array.isArray(Messages) && Messages.length === 1) {
+        // Search for collection who stores those emails
+        const found = state.cache.find((collection) => {
+          const state = collection.email.reduce(function (prev, cur) {
+            return prev && Messages[0].email.includes(cur);
+          }, true);
+          return state;
+        });
+
+        if (found) {
+          // The collection exists
+          found.messages = [...Messages[0].messages, ...found.messages];
+          found.nextPageToken = Messages[0].nextPageToken;
+          return { ...state };
+        } else {
+          return { ...state, cache: [...state.cache, Messages[0]] };
+        }
       }
       break;
     }

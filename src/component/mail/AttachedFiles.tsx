@@ -55,7 +55,6 @@ const AttachedFiles: React.FC<AttachedFilesProps> = ({ message }) => {
 
     const blob = new Blob(byteArrays, { type: contentType });
     let urlBlob = URL.createObjectURL(blob);
-    console.log(urlBlob);
     const a = document.createElement('a');
     a.href = urlBlob;
     a.download = filename;

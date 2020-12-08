@@ -10,7 +10,7 @@ const { error } = Modal;
 
 interface TextAreaInterface {
   to: string;
-  onSubmit: (content: string, multipart: boolean) => any;
+  onSubmit: (content: string, header: string) => any;
 }
 
 export const TextAreaChat: React.FC<TextAreaInterface> = ({ onSubmit, to }) => {
@@ -34,28 +34,29 @@ export const TextAreaChat: React.FC<TextAreaInterface> = ({ onSubmit, to }) => {
         return void 0;
       } else if (code === '\n' || keyCode === 13) {
         event.preventDefault();
-        const email = `
-${filesContent.length === 0 ? '' : '--emplorium_boundary'}
-${filesContent.length === 0 ? '' : '--emplorium_boundary'}
-Content-Type: text/plain; charset="UTF-8"
-${content}
+        const header = filesContent.length
+          ? 'Content-Type: multipart/mixed; boundary="emplorium_boundary"\r\nMIME-Version: 1.0\r\n'
+          : 'Content-Type: text/plain; charset="UTF-8"\r\n';
+        const email = `${filesContent.length === 0 ? '' : '--emplorium_boundary\r\n'}${content}
 ${filesContent
   .map(
     (file) => `
 
 --emplorium_boundary
 Content-Type: ${file.type}
-Content-Transfer-Encoding: base64
+Content-Transfer-Encoding: 8bit
 Content-Disposition: attachment; filename="${file.filename}"
 
 ${file.content}
+
+
 `
   )
   .join('')}
 
 ${filesContent.length === 0 ? '' : '--emplorium_boundary--'}
 `;
-        onSubmit && onSubmit(email, filesContent.length === 0 ? false : true);
+        onSubmit(email, header);
         setContent('');
         setFilesContent([]);
       }

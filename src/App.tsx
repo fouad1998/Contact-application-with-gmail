@@ -2,14 +2,14 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { Layout, Row, Col } from 'antd';
 import Gmail from './component/Gmail';
 import Signin from './component/Signin';
-import { EditorContext } from './context/CreateEditorContext';
+import { SnackbarProvider } from 'notistack';
 import 'antd/dist/antd.css';
 import './scss/home.scss';
 import './scss/signin.scss';
 import './scss/mailBoxInterface.scss';
 // import '../node_modules/react-draft-wysiwyg/dist/react-draft-wysiwyg.css';
 
-function App() {
+export default function App() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [GoogleAuth, setGoogleAuth] = useState({});
   const [loading, setLoading] = useState(true);
@@ -66,22 +66,22 @@ function App() {
   }
 
   return (
-    <Layout style={{ height: '100vh' }}>
-      <Row className="home">
-        <Col span={24} className="title">
-          <h1>Contacts Application with Gmail</h1>
-        </Col>
-        <Col span={24}>
-          {loading && <strong>Loading....</strong>}
-          {error && <strong>Error...</strong>}
-          {/**@ts-ignore */}
-          {isAuthorized && !loading && !error && <Gmail />}
-          {/**@ts-ignore */}
-          {!isAuthorized && !loading && !error && <Signin signin={GoogleAuth.signIn} loading={loading} />}
-        </Col>
-      </Row>
-    </Layout>
+    <SnackbarProvider maxSnack={3}>
+      <Layout style={{ height: '100vh' }}>
+        <Row className="home">
+          <Col span={24} className="title">
+            <h1>Contacts Application with Gmail</h1>
+          </Col>
+          <Col span={24}>
+            {loading && <strong>Loading....</strong>}
+            {error && <strong>Error...</strong>}
+            {/**@ts-ignore */}
+            {isAuthorized && !loading && !error && <Gmail />}
+            {/**@ts-ignore */}
+            {!isAuthorized && !loading && !error && <Signin signin={GoogleAuth.signIn} loading={loading} />}
+          </Col>
+        </Row>
+      </Layout>
+    </SnackbarProvider>
   );
 }
-
-export default React.memo(App);
