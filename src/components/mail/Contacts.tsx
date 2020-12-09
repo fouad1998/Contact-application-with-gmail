@@ -6,18 +6,13 @@ import ErrorLoading from '../Error/ErrorLoading';
 import ContactItem from '../design/ContactItem';
 import GeneralSettings from '../settings/global/GeneralSettings';
 
-export interface Contact {
-  kickname: string;
-  emails: string[];
-}
-
 interface ContactProps {}
 
 const Contacts: React.FC<ContactProps> = () => {
   const { state, loadingContacts, errorLoadingContacts, selectContact, reloadContacts } = useContext(GmailContext);
 
   return (
-    <Row dir="column">
+    <Row>
       {loadingContacts && <Loader />}
       <Col span={24} className="title">
         <h3>Contacts</h3>

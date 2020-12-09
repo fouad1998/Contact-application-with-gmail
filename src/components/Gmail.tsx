@@ -1,14 +1,11 @@
 import { Col, Row } from 'antd';
 import React, { useCallback, useEffect, useReducer, useState } from 'react';
-import { GmailReducer, GMAIL_REDUCER_TYPE } from '../reducer/gmailReducer';
-import { Loader } from './Loader/Loader';
-import ListMessages from './mail/ListMessages';
-import Editor from './mail/Editor';
-import Contacts, { Contact } from './mail/Contacts';
+import { GmailReducer } from '../reducer/gmailReducer';
+import Contacts from './mail/Contacts';
 import { useSnackbar } from 'notistack';
 import { Button, Typography } from '@material-ui/core';
 import { initialReducerValue } from '../constant/constant';
-import { GmailContext, GmailContextInterface } from '../context/Gmail';
+import { GmailContext } from '../context/Gmail';
 import { loadContacts } from '../utils/gmail/LoadContactGmail';
 import { getProfileEmail } from '../utils/gmail/GetProfileEmail';
 import { getLabels } from '../utils/gmail/Label';
@@ -16,6 +13,10 @@ import { getListEmailId } from '../utils/gmail/ListEmailId';
 import { getEmailsContent } from '../utils/gmail/EmailContentFetch';
 import { sendMail } from '../utils/gmail/SendMail';
 import { GmailSettings } from '../interfaces/gmail/GmailSettings';
+import { Contact } from '../interfaces/data/Contact';
+import { GMAIL_REDUCER_TYPE } from '../enum/gmail/GmailReducer';
+import { GmailContextInterface } from '../interfaces/gmail/GmailContext';
+import RightSide from './mail/RightSide';
 
 interface GmailProps {}
 
@@ -30,6 +31,7 @@ const Gmail: React.FC<GmailProps> = () => {
     loading: true,
     error: true,
   });
+  const [reloadContacts, setReloadContacts] = useState<() => void>(() => {});
   const { enqueueSnackbar } = useSnackbar();
 
   // Load messages
@@ -104,31 +106,35 @@ const Gmail: React.FC<GmailProps> = () => {
     const Profile = () => {
       getProfileEmail()
         .then((email) => {
-          console.log('Loaded the Profile', email);
           // Load contacts
-          loadContacts(email)
-            .then((contacts) => {
-              dispatch({
-                type: GMAIL_REDUCER_TYPE.SET_CONTACTS,
-                payload: { contacts: contacts },
+          const contacts = () => {
+            loadContacts(email)
+              .then((contacts) => {
+                dispatch({
+                  type: GMAIL_REDUCER_TYPE.SET_CONTACTS,
+                  payload: { contacts: contacts },
+                });
+                setContactsStatus({ loading: false, error: false });
+              })
+              .catch(() => {
+                // Faild loading contacts
+                setReloadContacts(contacts);
+                setContactsStatus({ loading: false, error: true });
+                enqueueSnackbar(
+                  <Row justify="space-between" align="middle">
+                    <Col>
+                      <Typography>Error loading the contacts...</Typography>
+                    </Col>
+                    <Col>
+                      <Button onClick={() => loadContacts(email)}>Reload</Button>
+                    </Col>
+                  </Row>,
+                  { variant: 'error' }
+                );
               });
-              setContactsStatus({ loading: false, error: false });
-            })
-            .catch(() => {
-              // Faild loading contacts
-              setContactsStatus({ loading: false, error: true });
-              enqueueSnackbar(
-                <Row justify="space-between" align="middle">
-                  <Col>
-                    <Typography>Error loading the contacts...</Typography>
-                  </Col>
-                  <Col>
-                    <Button onClick={() => loadContacts(email)}>Reload</Button>
-                  </Col>
-                </Row>,
-                { variant: 'error' }
-              );
-            });
+          };
+
+          contacts();
 
           dispatch({
             type: GMAIL_REDUCER_TYPE.SET_USER_EMAIL,
@@ -136,6 +142,7 @@ const Gmail: React.FC<GmailProps> = () => {
           });
         })
         .catch(() => {
+          setReloadContacts(Profile);
           setContactsStatus({ loading: false, error: true });
           enqueueSnackbar(
             <Row justify="space-between" align="middle">
@@ -249,12 +256,15 @@ const Gmail: React.FC<GmailProps> = () => {
   const contextValues: GmailContextInterface = {
     state,
     loadingContacts: contactsStatus.loading,
+    loadingMessages: messagesStatus.loading,
     errorLoadingContacts: contactsStatus.error,
-    errorLoadingMessage: messagesStatus.loading,
+    errorLoadingMessage: messagesStatus.error,
+    messages,
     saveSettings: settingsSaveHandler,
     selectContact,
     setContacts,
-    reloadContacts: () => loadContacts(state.currentContact),
+    reloadContacts,
+    sendMessage,
     reloadMessages: loadMessages,
   };
 
@@ -267,36 +277,7 @@ const Gmail: React.FC<GmailProps> = () => {
               <Contacts />
             </Col>
             <Col span={19} className="right-side">
-              {(state.currentContact === '' || (state.currentContact !== '' && messages.length === 0)) && (
-                <Row className="message-info">
-                  {/** No selected contact */}
-                  {state.currentContact === '' && (
-                    <Col span={24} className="no-selected-contact">
-                      No Contact Selected Yet!
-                    </Col>
-                  )}
-                  {/** Empty Box */}
-                  {state.currentContact !== '' && messages.length === 0 && (
-                    <Col span={24} className="empty-box">
-                      Empty box (No message is sent in this contact)
-                    </Col>
-                  )}
-                </Row>
-              )}
-              {/** Loading messages */}
-              {messagesStatus.loading && <Loader />}
-              {/** List messages (emails) */}
-              {messages.length > 0 && (
-                <ListMessages
-                  messageShowModel={state.messageShowModel}
-                  messages={messages}
-                  userEmail={state.userEmail}
-                />
-              )}
-              {/** The editor (input) */}
-              {state.currentContact.length > 0 && (
-                <Editor currentContact={state.currentContact} editor={state.editor} sendMessage={sendMessage} />
-              )}
+              <RightSide />
             </Col>
           </Row>
         </Col>

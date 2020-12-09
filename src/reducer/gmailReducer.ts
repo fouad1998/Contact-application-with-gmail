@@ -1,33 +1,10 @@
-export enum GMAIL_REDUCER_TYPE {
-  SET_MESSAGES_ID,
-  SET_MESSAGES_CONTENT,
-  SET_MESSAGES,
-  SET_CURRENT_LABEL,
-  SET_LABELS,
-  SET_CONTACTS,
-  SET_SELECT,
-  SET_CURRENT_CONTACT,
-  SET_MESSAGE_MODEL_SHOW,
-  SET_USER_EMAIL,
-  SET_EDITOR_TYPE,
-  SET_MESSAGE_THREAD,
-}
+import { GMAIL_REDUCER_TYPE } from '../enum/gmail/GmailReducer';
+import { GmailReducerInterface } from '../interfaces/gmail/GmailReducer';
 
-export interface GmailReducerInterface {
-  cache: Array<{ email: string[]; nextPageToken: string; messages: Array<{ email: string; message: any }> }>;
-  nextPageToken: string;
-  currentLabel: string;
-  labels: string[];
-  contacts: { kickname: string; emails: string[] }[];
-  selectedContact: { kickname: string; emails: string[] };
-  currentContact: string;
-  userEmail: string;
-  messageShowModel: 'snippet' | 'complete as text' | 'complete as html';
-  editor: 'simple' | 'advanced';
-  messageThread: 'new thread' | 'last thread';
-}
-
-export const GmailReducer = (state: GmailReducerInterface, action: { type: GMAIL_REDUCER_TYPE; payload: Partial<GmailReducerInterface> }) => {
+export const GmailReducer = (
+  state: GmailReducerInterface,
+  action: { type: GMAIL_REDUCER_TYPE; payload: Partial<GmailReducerInterface> }
+) => {
   switch (action.type) {
     case GMAIL_REDUCER_TYPE.SET_CURRENT_LABEL: {
       if (typeof action.payload.currentLabel === 'string') {

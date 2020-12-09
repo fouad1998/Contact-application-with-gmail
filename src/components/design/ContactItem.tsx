@@ -1,6 +1,6 @@
 import { Col, Row, Tag, Typography } from 'antd';
 import React from 'react';
-import { Contact } from '../mail/Contacts';
+import { Contact } from '../../interfaces/data/Contact';
 
 interface ContactItemProps {
   isActive: boolean;

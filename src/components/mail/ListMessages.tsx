@@ -4,15 +4,14 @@ import { GmailContext } from '../../context/Gmail';
 import EmailText from '../design/EmailText';
 import EmailHTML from '../design/EmailHTML';
 
-interface ListMessagesProps {
-  messages: Array<any>;
-  messageShowModel: string;
-  userEmail: string;
-}
+interface ListMessagesProps {}
 
-const ListMessages: React.FC<ListMessagesProps> = ({ messages, messageShowModel, userEmail }) => {
-  const { state } = useContext(GmailContext);
+const ListMessages: React.FC<ListMessagesProps> = () => {
+  const { state, messages } = useContext(GmailContext);
+  const { messageShowModel, userEmail } = state!;
+
   const hasMoreThanOneEmail = state!.selectedContact.emails.length > 1;
+
   return (
     <Row className="result">
       <Col span={24} className="header">
@@ -36,7 +35,7 @@ const ListMessages: React.FC<ListMessagesProps> = ({ messages, messageShowModel,
       <Col span={24} className="messages-container">
         <Row>
           <Col span={24}>
-            {messages.map((message) => {
+            {messages!.map((message) => {
               const sameUser =
                 message.payload.headers.find((header: any) => header.name === 'From').value.indexOf(userEmail) !== -1;
               const subject = message.payload.headers.find((header: any) => header.name === 'Subject').value;
