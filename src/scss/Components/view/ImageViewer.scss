@@ -1,0 +1,12 @@
+div.image-viewer {
+  position: relative;
+  height: 100px;
+
+  img {
+    height: 100px;
+    width: 150px;
+    max-height: 100px;
+    max-width: 100%;
+    border-radius: 3px;
+  }
+}

@@ -28,11 +28,9 @@ const EmailText: React.FC<EmailTextProps> = ({ subject, isSameUser, messageShowM
             <Col span={24} className="message-content" dangerouslySetInnerHTML={{ __html: messageContent }} />
           </Row>
         )}
-        <Row>
-          <Col span={24} className="attached-files">
-            <AttachedFiles message={message} />
-          </Col>
-        </Row>
+      </Col>
+      <Col span={14} offset={isSameUser ? 10 : 0}>
+        <AttachedFiles message={message} isSameUser={isSameUser} />
       </Col>
     </Row>
   );

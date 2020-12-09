@@ -8,9 +8,10 @@ import { getFileSize } from '../../utils/utils/GetFileSize';
 interface AttachedFilesProps {
   readonly message: any;
   readonly withTitle?: boolean;
+  readonly isSameUser?: boolean;
 }
 
-const AttachedFiles: React.FC<AttachedFilesProps> = ({ message, withTitle }) => {
+const AttachedFiles: React.FC<AttachedFilesProps> = ({ message, withTitle, isSameUser }) => {
   const {
     payload: { parts },
   } = message;
@@ -59,7 +60,7 @@ const AttachedFiles: React.FC<AttachedFilesProps> = ({ message, withTitle }) => 
   }
 
   return (
-    <Row className={'attachements ' + (withTitle ? 'with-title' : '')}>
+    <Row className={'attachements' + (withTitle ? ' with-title' : '') + (isSameUser ? ' me' : '')}>
       {withTitle && (
         <Col span={24} className="attachement-title">
           <Typography>Attached files</Typography>
@@ -79,8 +80,12 @@ const AttachedFiles: React.FC<AttachedFilesProps> = ({ message, withTitle }) => 
                         {/**@ts-ignore */}
                         <FileIcon extension={extention} {...defaultStyles[extention]} />
                       </Col>
-                      <Col className="name">
-                        <Typography>{attachementPart.filename}</Typography>
+                      <Col className="name" span={24}>
+                        <Typography>
+                          {attachementPart.filename.length > 20
+                            ? attachementPart.filename.substr(0, 17) + '...'
+                            : attachementPart.filename}
+                        </Typography>
                       </Col>
                     </Row>
                     <Row className="down">

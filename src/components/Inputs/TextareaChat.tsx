@@ -2,7 +2,8 @@ import React, { useCallback, useState } from 'react';
 import { Button, Col, Input, Row, Upload, Modal } from 'antd';
 import { Add } from '@material-ui/icons';
 import { RcFile, UploadFile } from 'antd/lib/upload/interface';
-import { Base64 } from 'js-base64';
+import { UploadSelection } from '../../interfaces/gmail/UploadSelection';
+import UploaderViewer from '../view/UploaderViewer';
 
 const { TextArea } = Input;
 
@@ -15,7 +16,7 @@ interface TextAreaInterface {
 
 export const TextAreaChat: React.FC<TextAreaInterface> = ({ onSubmit, to }) => {
   const [content, setContent] = useState<string>('');
-  const [filesContent, setFilesContent] = useState<{ filename: string; size: number; content: string; type: string; id: string; file: RcFile }[]>([]);
+  const [filesContent, setFilesContent] = useState<UploadSelection[]>([]);
 
   const onChangeHandler = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
     event.stopPropagation();
@@ -44,7 +45,7 @@ ${filesContent
 
 --emplorium_boundary
 Content-Type: ${file.type}
-Content-Transfer-Encoding: 8bit
+Content-Transfer-Encoding: base64
 Content-Disposition: attachment; filename="${file.filename}"
 
 ${file.content}
@@ -96,29 +97,37 @@ ${filesContent.length === 0 ? '' : '--emplorium_boundary--'}
     [filesContent]
   );
 
-  const onRemove = useCallback((file: UploadFile<any>) => {
-    const uid = file.uid;
+  const onRemove = useCallback((uid: string) => {
     setFilesContent((state) => state.filter((file) => file.id !== uid));
   }, []);
 
   return (
-    <Row>
-      <Col span={4}>
-        <Upload beforeUpload={beforeUpload} fileList={filesContent.map((e) => e.file)} onRemove={onRemove}>
-          <Button>
-            <Add />
-          </Button>
-        </Upload>
-      </Col>
-      <Col span={20}>
-        <TextArea
-          onKeyDown={onKeyDownHandler}
-          onChange={onChangeHandler}
-          placeholder={`Message to ${to}`}
-          value={content}
-          autoSize={{ maxRows: 5, minRows: 1 }}
-          className="textarea-chat"
-        />
+    <Row className="textarea-chat">
+      {filesContent.length > 0 && (
+        <Col span={24}>
+          <UploaderViewer filesContent={filesContent!} remove={onRemove} />
+        </Col>
+      )}
+      <Col span={24}>
+        <Row className="input-section">
+          <Col span={4}>
+            <Upload beforeUpload={beforeUpload} fileList={filesContent.map((e) => e.file)} itemRender={() => void 0}>
+              <Button>
+                <Add />
+              </Button>
+            </Upload>
+          </Col>
+          <Col span={20}>
+            <TextArea
+              onKeyDown={onKeyDownHandler}
+              onChange={onChangeHandler}
+              placeholder={`Message to ${to}`}
+              value={content}
+              autoSize={{ maxRows: 5, minRows: 1 }}
+              className="textarea-chat"
+            />
+          </Col>
+        </Row>
       </Col>
     </Row>
   );

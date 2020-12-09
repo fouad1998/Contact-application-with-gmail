@@ -3,7 +3,7 @@ import React, { useContext } from 'react';
 import { Loader } from '../Loader/Loader';
 import { GmailContext } from '../../context/Gmail';
 import ErrorLoading from '../Error/ErrorLoading';
-import ContactItem from '../design/ContactItem';
+import ContactItem from '../view/ContactItem';
 import GeneralSettings from '../settings/global/GeneralSettings';
 
 interface ContactProps {}

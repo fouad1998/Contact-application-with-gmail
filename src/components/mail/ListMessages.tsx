@@ -1,8 +1,8 @@
 import { Col, Row, Select } from 'antd';
 import React, { useContext } from 'react';
 import { GmailContext } from '../../context/Gmail';
-import EmailText from '../design/EmailText';
-import EmailHTML from '../design/EmailHTML';
+import EmailText from '../view/EmailText';
+import EmailHTML from '../view/EmailHTML';
 
 interface ListMessagesProps {}
 

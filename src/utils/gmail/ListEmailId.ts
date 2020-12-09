@@ -21,9 +21,14 @@ export const getListEmailId = (
       })
       .then((response: any) => {
         if (response.error === void 0) {
-          const messagesId = response.result.messages.map((message: any) => message.id) as string[];
-          const nextTokenPage = response.result.nextTokenPage;
-          resolve({ messagesId, nextTokenPage });
+          console.log(response);
+          if (response.result.resultSizeEstimate === 0) {
+            resolve({ messagesId: [], nextTokenPage: '' });
+          } else {
+            const messagesId = response.result.messages.map((message: any) => message.id) as string[];
+            const nextTokenPage = response.result.nextTokenPage;
+            resolve({ messagesId, nextTokenPage: nextTokenPage || '' });
+          }
         } else {
           reject(response.error);
         }

@@ -7,50 +7,48 @@ div.attachements {
     border-top: 1px dashed black;
   }
 
-  .attachement-title h5 {
+  div.attachement-title h5 {
     font-variant-caps: all-petite-caps;
     text-decoration: underline;
     color: rgb(128, 126, 126);
   }
 
   div.files-container {
-    justify-content: flex-end;
+    flex-wrap: wrap;
 
     div.file-attached {
-      min-width: 180px;
-      max-width: 220px;
+      min-width: 200px;
+      max-width: 250px;
 
       div.file {
         position: relative;
 
         div.information {
-          height: 40px;
+          height: 60px;
           background-color: gray;
           align-items: center;
           display: flex;
           flex-wrap: nowrap;
 
           div.icon {
-            flex-grow: 0;
-            flex-shrink: 0;
+            flex-grow: 0 !important;
+            flex-shrink: 0 !important;
             width: 23px !important;
             margin: 0 5px;
           }
 
-          div.name p {
-            flex-grow: 1;
-            flex-shrink: 1;
-            font-size: small;
-            justify-content: center;
-            align-items: center;
+          div.name {
+            flex-grow: 10 !important;
+            flex-shrink: 10 !important;
             overflow: hidden;
-            word-wrap: normal;
-          }
-        }
 
-        &:hover {
-          div.file-information {
-            display: block;
+            p {
+              font-size: small;
+              justify-content: center;
+              align-items: center;
+              overflow: hidden;
+              word-wrap: normal;
+            }
           }
         }
 
@@ -72,6 +70,12 @@ div.attachements {
           }
         }
       }
+    }
+  }
+
+  &.me {
+    div.files-container {
+      justify-content: flex-end;
     }
   }
 }
