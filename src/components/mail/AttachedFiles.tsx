@@ -1,24 +1,16 @@
-import { FormatSizeTwoTone } from '@material-ui/icons';
-import { Col, Row, Typography } from 'antd';
-import { Base64 } from 'js-base64';
+import { Typography, Button } from '@material-ui/core';
+import { ArrowDownward } from '@material-ui/icons';
+import { Col, Row } from 'antd';
 import React from 'react';
 import { FileIcon, defaultStyles } from 'react-file-icon';
+import { getFileSize } from '../../utils/utils/GetFileSize';
 
 interface AttachedFilesProps {
-  message: any;
+  readonly message: any;
+  readonly withTitle?: boolean;
 }
 
-const transformFileSizeUnit = (size: number) => {
-  let i = 0;
-  const units = ['B', 'KB', 'MB', 'KB', 'GB', 'TB'];
-  while (size / 1024 > 1) {
-    ++i;
-    size /= 1024;
-  }
-  return `${size.toFixed(2)}${units[i]}`;
-};
-
-const AttachedFiles: React.FC<AttachedFilesProps> = ({ message }) => {
+const AttachedFiles: React.FC<AttachedFilesProps> = ({ message, withTitle }) => {
   const {
     payload: { parts },
   } = message;
@@ -30,9 +22,7 @@ const AttachedFiles: React.FC<AttachedFilesProps> = ({ message }) => {
       messageId: message.id,
       id: attachementId,
     };
-    console.log('Sending request to download', params);
-    //@ts-ignore
-    const response = await gapi.client.gmail.users.messages.attachments.get(params);
+    const response = await window.gapi.client.gmail.users.messages.attachments.get(params);
     const { data, size } = response.result;
     const contentType = mimeType || '';
     const sliceSize = size || 512;
@@ -63,34 +53,53 @@ const AttachedFiles: React.FC<AttachedFilesProps> = ({ message }) => {
   };
 
   const attachmentParts = Array.isArray(parts) ? parts.filter((part: any) => part.body.attachmentId !== void 0) : [];
+
+  if (attachmentParts.length === 0) {
+    return <span></span>;
+  }
+
   return (
-    <Row className="attachements">
-      {attachmentParts.length > 0 && (
+    <Row className={'attachements ' + (withTitle ? 'with-title' : '')}>
+      {withTitle && (
         <Col span={24} className="attachement-title">
-          <Typography.Title level={5}>Attached files</Typography.Title>
+          <Typography>Attached files</Typography>
         </Col>
       )}
-      {attachmentParts.map((attachementPart: any, index: number) => {
-        const extention = attachementPart.filename.replace(/^.+\.([a-zA-Z0-9]+)$/, '$1');
-        const size = transformFileSizeUnit(attachementPart.body.size);
-        console.log(attachementPart);
-        return (
-          <Col span={4} key={index} className="file-attached" onClick={() => downloadFile(attachementPart.body.attachmentId, attachementPart)}>
-            <Row>
-              <Col span={24} className="file-icon">
-                <span className="file-size">{size}</span>
-                {/**@ts-ignore */}
-                <FileIcon extension={extention} {...defaultStyles[extention]} />
+      <Col span={24}>
+        <Row className="files-container">
+          {attachmentParts.map((attachementPart: any, index: number) => {
+            const extention = attachementPart.filename.replace(/^.+\.([a-zA-Z0-9]+)$/, '$1');
+            const size = getFileSize(attachementPart.body.size);
+            return (
+              <Col span={6} key={index} className="file-attached">
+                <Row>
+                  <Col span={24} className="file">
+                    <Row className="information">
+                      <Col className="icon">
+                        {/**@ts-ignore */}
+                        <FileIcon extension={extention} {...defaultStyles[extention]} />
+                      </Col>
+                      <Col className="name">
+                        <Typography>{attachementPart.filename}</Typography>
+                      </Col>
+                    </Row>
+                    <Row className="down">
+                      <Col className="size">
+                        <Typography>{size}</Typography>
+                      </Col>
+                      <Col>
+                        <Button onClick={() => downloadFile(attachementPart.body.attachmentId, attachementPart)}>
+                          <ArrowDownward />
+                        </Button>
+                      </Col>
+                    </Row>
+                  </Col>
+                </Row>
               </Col>
-            </Row>
-            <Row>
-              <Col span={24} className="file-name">
-                {attachementPart.filename}
-              </Col>
-            </Row>
-          </Col>
-        );
-      })}
+            );
+          })}
+        </Row>
+      </Col>
     </Row>
   );
 };

@@ -1,6 +1,11 @@
-.attachements {
-  padding: 10px 5px;
+div.attachements {
+  margin-top: 5px;
+  padding: 10px 0;
   min-width: 40px;
+
+  &.with-title {
+    border-top: 1px dashed black;
+  }
 
   .attachement-title h5 {
     font-variant-caps: all-petite-caps;
@@ -8,41 +13,65 @@
     color: rgb(128, 126, 126);
   }
 
-  .file-attached {
-    cursor: pointer;
+  div.files-container {
+    justify-content: flex-end;
 
-    .file-icon {
-      position: relative;
-      max-width: 60px;
-      margin: auto;
+    div.file-attached {
+      min-width: 180px;
+      max-width: 220px;
 
-      &:hover {
-        .file-size {
+      div.file {
+        position: relative;
+
+        div.information {
+          height: 40px;
+          background-color: gray;
+          align-items: center;
           display: flex;
+          flex-wrap: nowrap;
+
+          div.icon {
+            flex-grow: 0;
+            flex-shrink: 0;
+            width: 23px !important;
+            margin: 0 5px;
+          }
+
+          div.name p {
+            flex-grow: 1;
+            flex-shrink: 1;
+            font-size: small;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            word-wrap: normal;
+          }
+        }
+
+        &:hover {
+          div.file-information {
+            display: block;
+          }
+        }
+
+        div.down {
+          background-color: rgb(177, 177, 177);
+          height: 40px;
+          justify-content: space-around;
+          align-items: center;
+
+          div.size {
+            justify-content: center;
+            align-items: center;
+            padding: 3px 4px;
+            background: rgb(158, 158, 158);
+            font-variant-caps: all-petite-caps;
+            font-weight: bold;
+            border-radius: 3px;
+            color: white;
+          }
         }
       }
-
-      .file-size {
-        display: none;
-        justify-content: center;
-        align-items: center;
-        position: absolute;
-        top: 0;
-        right: 0;
-        padding: 3px 4px;
-        background: rgb(158, 158, 158);
-        font-variant-caps: all-petite-caps;
-        font-weight: bold;
-        border-radius: 3px;
-        color: rgb(250, 249, 249);
-      }
-    }
-
-    .file-name {
-      font-size: small;
-      display: flex;
-      justify-content: center;
-      align-items: center;
     }
   }
 }

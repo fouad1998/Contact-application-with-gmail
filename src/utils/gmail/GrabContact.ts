@@ -1,4 +1,4 @@
-import { Contact } from '../../components/mail/Contacts';
+import { Contact } from '../../interfaces/data/Contact';
 
 export const grabContact = (data: any) => {
   const contacts = [];

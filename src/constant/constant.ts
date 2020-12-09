@@ -1,4 +1,4 @@
-import { GmailReducerInterface } from '../reducer/gmailReducer';
+import { GmailReducerInterface } from '../interfaces/gmail/GmailReducer';
 
 export const emailRegexp = /([a-zA-Z0-9\-\.]{1,}@[a-zA-Z0-9\-\.]{1,}\.[a-zA-Z0-9]{1,})/;
 

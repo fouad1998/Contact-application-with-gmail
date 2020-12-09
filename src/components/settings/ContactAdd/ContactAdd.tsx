@@ -3,7 +3,7 @@ import React, { useCallback, useContext, useState } from 'react';
 import AddIcon from '@material-ui/icons/Add';
 import { Remove } from '@material-ui/icons';
 import { GmailContext } from '../../../context/Gmail';
-import { Contact } from '../../mail/Contacts';
+import { Contact } from '../../../interfaces/data/Contact';
 
 interface ContactAddProps {
   visible: boolean;

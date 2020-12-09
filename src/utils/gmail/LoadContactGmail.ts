@@ -1,5 +1,5 @@
 import Axios from 'axios';
-import { Contact } from '../../components/mail/Contacts';
+import { Contact } from '../../interfaces/data/Contact';
 import { grabContact } from './GrabContact';
 
 // Load contacts from gmail API

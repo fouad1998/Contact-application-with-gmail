@@ -11,8 +11,8 @@ export default function RightSide() {
   const { currentContact } = state!;
 
   return (
-    <Row>
-      <Col>
+    <Row className="inherit-height">
+      <Col span={24} className="right-side-container">
         {(currentContact === '' || (currentContact !== '' && messages!.length === 0)) && (
           <Row className="message-info">
             {/** No selected contact */}
