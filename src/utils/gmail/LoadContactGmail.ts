@@ -2,11 +2,9 @@ import Axios from 'axios';
 import { Contact } from '../../components/mail/Contacts';
 import { grabContact } from './GrabContact';
 
-var gapi: any = gapi || {};
-
 // Load contacts from gmail API
 export const loadContacts = (email: string): Promise<Contact[]> => {
-  const token = gapi.client.getToken();
+  const token = window.gapi.client.getToken();
 
   return new Promise((resolve, reject) => {
     // Success getting the contacts

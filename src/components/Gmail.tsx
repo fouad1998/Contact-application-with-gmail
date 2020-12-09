@@ -101,40 +101,57 @@ const Gmail: React.FC<GmailProps> = () => {
   };
 
   useEffect(() => {
-    getProfileEmail()
-      .then((email) => {
-        // Load contacts
-        loadContacts(email)
-          .then((contacts) => {
-            dispatch({
-              type: GMAIL_REDUCER_TYPE.SET_CONTACTS,
-              payload: { contacts: contacts },
+    const Profile = () => {
+      getProfileEmail()
+        .then((email) => {
+          console.log('Loaded the Profile', email);
+          // Load contacts
+          loadContacts(email)
+            .then((contacts) => {
+              dispatch({
+                type: GMAIL_REDUCER_TYPE.SET_CONTACTS,
+                payload: { contacts: contacts },
+              });
+              setContactsStatus({ loading: false, error: false });
+            })
+            .catch(() => {
+              // Faild loading contacts
+              setContactsStatus({ loading: false, error: true });
+              enqueueSnackbar(
+                <Row justify="space-between" align="middle">
+                  <Col>
+                    <Typography>Error loading the contacts...</Typography>
+                  </Col>
+                  <Col>
+                    <Button onClick={() => loadContacts(email)}>Reload</Button>
+                  </Col>
+                </Row>,
+                { variant: 'error' }
+              );
             });
-            //TODO: After make the error to true
-            setContactsStatus((state) => ({ ...state, error: true }));
-          })
-          .catch(() => {
-            // Faild loading contacts
-            setContactsStatus((state) => ({ ...state, error: true }));
-            enqueueSnackbar(
-              <Row justify="space-between" align="middle">
-                <Col>
-                  <Typography>Error loading the contacts...</Typography>
-                </Col>
-                <Col>
-                  <Button onClick={() => loadContacts(email)}>Reload</Button>
-                </Col>
-              </Row>,
-              { variant: 'error' }
-            );
-          });
 
-        dispatch({
-          type: GMAIL_REDUCER_TYPE.SET_USER_EMAIL,
-          payload: { userEmail: email },
+          dispatch({
+            type: GMAIL_REDUCER_TYPE.SET_USER_EMAIL,
+            payload: { userEmail: email },
+          });
+        })
+        .catch(() => {
+          setContactsStatus({ loading: false, error: true });
+          enqueueSnackbar(
+            <Row justify="space-between" align="middle">
+              <Col>
+                <Typography>Error loading the Contacts...</Typography>
+              </Col>
+              <Col>
+                <Button onClick={Profile}>Reload</Button>
+              </Col>
+            </Row>,
+            { variant: 'error' }
+          );
         });
-      })
-      .catch(() => {});
+    };
+
+    Profile();
 
     getLabels().then((labels) => {
       dispatch({

@@ -10,6 +10,7 @@ export const getProfileEmail = (): Promise<string> => {
         }
         const email = response.result.emailAddress;
         resolve(email);
-      }, reject);
+      })
+      .catch(reject);
   });
 };
