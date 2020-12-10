@@ -1,4 +1,5 @@
-import { Row, Col, Typography, Avatar } from 'antd';
+import { Typography } from '@material-ui/core';
+import { Row, Col, Avatar } from 'antd';
 import React from 'react';
 import { getMessageBodyAsHTML } from '../../utils/gmail/getMessageBodyAsHTML';
 import AttachedFiles from '../mail/AttachedFiles';
@@ -10,7 +11,7 @@ interface EmailHTMLProps {
 }
 
 const EmailHTML: React.FC<EmailHTMLProps> = ({ subject, message }) => {
-  const { headers } = message;
+  const { headers } = message.payload;
 
   return (
     <Row className="message-html">
@@ -18,7 +19,9 @@ const EmailHTML: React.FC<EmailHTMLProps> = ({ subject, message }) => {
         <Row>
           <Col span={4} className="avatar"></Col>
           <Col span={20} className="subject">
-            <Typography.Title level={3}> {subject === '' ? '(No title)' : subject} </Typography.Title>
+            <Typography color="primary" variant="h5">
+              {subject === '' ? '(No title)' : subject}
+            </Typography>
           </Col>
         </Row>
       </Col>
@@ -36,7 +39,7 @@ const EmailHTML: React.FC<EmailHTMLProps> = ({ subject, message }) => {
                 <div dangerouslySetInnerHTML={{ __html: getMessageBodyAsHTML(message) }} className="iframes" />
               </Col>
               <Col span={24} className="attached-files">
-                <AttachedFiles message={message} />
+                <AttachedFiles withTitle={true} message={message} />
               </Col>
             </Row>
           </Col>

@@ -17,40 +17,14 @@ div.attachements {
     flex-wrap: wrap;
 
     div.file-attached {
-      min-width: 200px;
-      max-width: 250px;
+      min-width: 150px;
+      max-width: 200px;
+      margin: 0;
+      margin-right: 10px;
+      margin-bottom: 10px;
 
       div.file {
         position: relative;
-
-        div.information {
-          height: 60px;
-          background-color: gray;
-          align-items: center;
-          display: flex;
-          flex-wrap: nowrap;
-
-          div.icon {
-            flex-grow: 0 !important;
-            flex-shrink: 0 !important;
-            width: 23px !important;
-            margin: 0 5px;
-          }
-
-          div.name {
-            flex-grow: 10 !important;
-            flex-shrink: 10 !important;
-            overflow: hidden;
-
-            p {
-              font-size: small;
-              justify-content: center;
-              align-items: center;
-              overflow: hidden;
-              word-wrap: normal;
-            }
-          }
-        }
 
         div.down {
           background-color: rgb(177, 177, 177);
@@ -76,6 +50,12 @@ div.attachements {
   &.me {
     div.files-container {
       justify-content: flex-end;
+
+      div.file-attached {
+        margin: 0;
+        margin-left: 10px;
+        margin-bottom: 10px;
+      }
     }
   }
 }

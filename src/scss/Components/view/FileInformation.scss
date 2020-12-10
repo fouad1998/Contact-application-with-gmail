@@ -1,0 +1,28 @@
+div.information {
+  height: 60px;
+  background-color: gray;
+  align-items: center;
+  display: flex;
+  flex-wrap: nowrap;
+
+  div.icon {
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    width: 23px !important;
+    margin: 0 5px;
+  }
+
+  div.name {
+    flex-grow: 10 !important;
+    flex-shrink: 10 !important;
+    overflow: hidden;
+
+    p {
+      font-size: small;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      word-wrap: normal;
+    }
+  }
+}

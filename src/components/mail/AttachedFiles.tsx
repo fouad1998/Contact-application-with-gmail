@@ -2,8 +2,10 @@ import { Typography, Button } from '@material-ui/core';
 import { ArrowDownward } from '@material-ui/icons';
 import { Col, Row } from 'antd';
 import React from 'react';
-import { FileIcon, defaultStyles } from 'react-file-icon';
+import { downloadFileFromGmail } from '../../utils/gmail/DownloadFile';
 import { getFileSize } from '../../utils/utils/GetFileSize';
+import FileInformation from '../view/FileInformation';
+import ImageViewer from '../view/ImageViewer';
 
 interface AttachedFilesProps {
   readonly message: any;
@@ -16,41 +18,19 @@ const AttachedFiles: React.FC<AttachedFilesProps> = ({ message, withTitle, isSam
     payload: { parts },
   } = message;
 
-  const downloadFile = async (attachementId: string, part: any) => {
+  const downloadFile = (attachmentId: string, messageId: string, part: any) => {
     const { filename, mimeType } = part;
-    const params = {
-      userId: 'me',
-      messageId: message.id,
-      id: attachementId,
-    };
-    const response = await window.gapi.client.gmail.users.messages.attachments.get(params);
-    const { data, size } = response.result;
-    const contentType = mimeType || '';
-    const sliceSize = size || 512;
-
-    var byteCharacters = atob(data.replace(/-/g, '+').replace(/_/g, '/'));
-    var byteArrays = [];
-
-    for (var offset = 0; offset < byteCharacters.length; offset += sliceSize) {
-      var slice = byteCharacters.slice(offset, offset + sliceSize);
-
-      var byteNumbers = new Array(slice.length);
-      for (var i = 0; i < slice.length; i++) {
-        byteNumbers[i] = slice.charCodeAt(i);
-      }
-
-      var byteArray = new Uint8Array(byteNumbers);
-
-      byteArrays.push(byteArray);
-    }
-
-    const blob = new Blob(byteArrays, { type: contentType });
-    let urlBlob = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = urlBlob;
-    a.download = filename;
-    a.click();
-    a.remove();
+    downloadFileFromGmail(attachmentId, messageId, mimeType)
+      .then((URL) => {
+        const a = document.createElement('a');
+        a.href = URL;
+        a.download = filename;
+        a.click();
+        a.remove();
+      })
+      .catch(() => {
+        //TODO: Handle this case
+      });
   };
 
   const attachmentParts = Array.isArray(parts) ? parts.filter((part: any) => part.body.attachmentId !== void 0) : [];
@@ -68,32 +48,30 @@ const AttachedFiles: React.FC<AttachedFilesProps> = ({ message, withTitle, isSam
       )}
       <Col span={24}>
         <Row className="files-container">
-          {attachmentParts.map((attachementPart: any, index: number) => {
-            const extention = attachementPart.filename.replace(/^.+\.([a-zA-Z0-9]+)$/, '$1');
-            const size = getFileSize(attachementPart.body.size);
+          {attachmentParts.map((attachmentPart: any, index: number) => {
+            const extension = attachmentPart.filename.replace(/^.+\.([a-zA-Z0-9]+)$/, '$1');
+            const filename = attachmentPart.filename;
+            const mimeType = attachmentPart.mimeType;
+            const isImage = /image\/.+/.test(mimeType);
+            const size = getFileSize(attachmentPart.body.size);
+            const attachmentId = attachmentPart.body.attachmentId;
+            const messageId = message.id;
+
             return (
               <Col span={6} key={index} className="file-attached">
                 <Row>
                   <Col span={24} className="file">
-                    <Row className="information">
-                      <Col className="icon">
-                        {/**@ts-ignore */}
-                        <FileIcon extension={extention} {...defaultStyles[extention]} />
-                      </Col>
-                      <Col className="name" span={24}>
-                        <Typography>
-                          {attachementPart.filename.length > 20
-                            ? attachementPart.filename.substr(0, 17) + '...'
-                            : attachementPart.filename}
-                        </Typography>
-                      </Col>
-                    </Row>
+                    {isImage ? (
+                      <ImageViewer isFile={false} attachment={{ attachmentId, messageId, mimeType }} />
+                    ) : (
+                      <FileInformation filename={filename} extension={extension} />
+                    )}
                     <Row className="down">
                       <Col className="size">
                         <Typography>{size}</Typography>
                       </Col>
                       <Col>
-                        <Button onClick={() => downloadFile(attachementPart.body.attachmentId, attachementPart)}>
+                        <Button onClick={() => downloadFile(attachmentId, messageId, attachmentPart)}>
                           <ArrowDownward />
                         </Button>
                       </Col>
