@@ -1,24 +1,18 @@
 import { Row, Col, Button } from 'antd';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useContext } from 'react';
 import { getToken } from '../utils/outlook/GetToken';
 import { Loader } from './Loader/Loader';
+import { connectionManagerContext } from '../context/ConnectionManager';
 
-interface SigninInterface {
-  signin: () => any;
-  loading: boolean;
-}
+interface SigninInterface {}
 
-const Signin: React.FC<SigninInterface> = (props) => {
-  const [clicked, setClicked] = useState<boolean>(false);
-  const [loading, setLoading] = useState<boolean>(props.loading);
+const Signin: React.FC<SigninInterface> = props => {
+  const [clicked, setClicked] = useState<{ state: boolean; service: string }>({ state: false, service: '' });
+  const [loading, setLoading] = useState<boolean>(false);
 
-  let signinClickHandler = useCallback(() => {
-    if (!clicked) {
-      setClicked(true);
-      setLoading(true);
-      props.signin();
-    }
-  }, [clicked, props.signin]);
+  const { connectionManager } = useContext(connectionManagerContext);
+
+  const services = ['google', 'microsoft'];
 
   return (
     <Row className="signin-container">
@@ -28,12 +22,20 @@ const Signin: React.FC<SigninInterface> = (props) => {
             <h2>Signin</h2>
           </Col>
           <Col span={24}>
-            <Button onClick={signinClickHandler} className="google-signin" disabled={clicked}>
-              {loading && <Loader transparent={true} />}Gmail
-            </Button>
-            <Button onClick={getToken} className="outlook-signin">
-              {loading && <Loader transparent={true} />}Outlook
-            </Button>
+            {services.map((service, index) => {
+              const signin = () => {
+                setClicked({ state: true, service });
+                setLoading(true);
+                connectionManager!.connect(service as 'google' | 'microsoft');
+              };
+
+              return (
+                <Button onClick={signin} key={index} className={`${service}-signin`} disabled={clicked.state}>
+                  {loading && clicked.service === service && <Loader transparent={true} />}
+                  {service}
+                </Button>
+              );
+            })}
           </Col>
         </Row>
       </Col>

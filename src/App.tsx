@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Layout, Row, Col } from 'antd';
 import Gmail from './components/Gmail';
 import Signin from './components/Signin';
@@ -10,44 +10,13 @@ import './scss/mailBoxInterface.scss';
 import { ConnectGoogle } from './utils/gmail/Connect';
 import { Loader } from './components/Loader/Loader';
 import ErrorLoading from './components/Error/ErrorLoading';
-
-declare global {
-  interface Window {
-    gapi: any;
-  }
-}
+import { connectionManagerContext } from './context/ConnectionManager';
 
 export default function App() {
-  const [isAuthorized, setIsAuthorized] = useState(false);
-  const [GoogleAuth, setGoogleAuth] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  const LoadGoogleAuth = () => {
-    ConnectGoogle()
-      .then(() => {
-        GoogleAuth.isSignedIn.listen(updateSigningStatus);
-        const status = GoogleAuth.isSignedIn.get();
-        //@ts-ignore
-        updateSigningStatus(status);
-        setGoogleAuth(GoogleAuth);
-      })
-      .catch(() => {
-        setLoading(false);
-        setError(true);
-      });
-  };
-
-  useEffect(LoadGoogleAuth, []);
-
-  function updateSigningStatus(isSignedIn: boolean) {
-    setLoading(false);
-    if (isSignedIn) {
-      setIsAuthorized(true);
-    } else {
-      setIsAuthorized(false);
-    }
-  }
+  const { isAuthorized } = useContext(connectionManagerContext);
 
   return (
     <SnackbarProvider maxSnack={3}>
@@ -66,7 +35,7 @@ export default function App() {
             {/**@ts-ignore */}
             {isAuthorized && !loading && !error && <Gmail />}
             {/**@ts-ignore */}
-            {!isAuthorized && !loading && !error && <Signin signin={GoogleAuth.signIn} loading={loading} />}
+            {!isAuthorized && !loading && !error && <Signin />}
           </Col>
         </Row>
       </Layout>

@@ -1,11 +1,12 @@
 import { Base64 } from 'js-base64';
 
-interface Headers {
+export interface Headers {
   From: string;
   To: string;
   Subject: string;
   Date: string;
 }
+
 export const sendMail = (content: string, headers: Headers, additionHeader: string = ''): Promise<any> => {
   return new Promise((resolve, reject) => {
     // If the email to send is not empty and is not a combination of special characters only

@@ -8,27 +8,27 @@ export default class OutlookManager extends Model {
   private static callAuthLoad = true;
   private static outlookManagerInstance: null | OutlookManager = null;
 
-  static getInstance = (authListener: (status: boolean) => void) => {
+  static getInstance = (authListener: (status: boolean) => void, onLoad?: () => void, onFaild?: () => void) => {
     // This function has for objective to garuante there is only one instance of this class
     if (OutlookManager.outlookManagerInstance) {
       return OutlookManager.outlookManagerInstance;
     } else {
-      OutlookManager.outlookManagerInstance = new OutlookManager(authListener);
+      OutlookManager.outlookManagerInstance = new OutlookManager(authListener, onLoad, onFaild);
       return OutlookManager.outlookManagerInstance;
     }
   };
 
-  private constructor(authListener: (status: boolean) => void) {
-    super(authListener);
+  private constructor(authListener: (status: boolean) => void, onLoad?: () => void, onFaild?: () => void) {
+    super(authListener, onLoad, onFaild);
     this.ready = true;
 
     this.checkConnectionStatus();
   }
 
   checkConnectionStatus(): Promise<boolean> {
-    return new Promise((resolve) => {
+    return new Promise(resolve => {
       CheckOutlookConnection()
-        .then((status) => {
+        .then(status => {
           if (status) {
             this.updateSigningStatus(true);
             resolve(true);
@@ -57,10 +57,10 @@ export default class OutlookManager extends Model {
       .catch(() => this.updateSigningStatus(false));
   };
 
-  sendMessage(message: string): Promise<boolean> {
+  sendMessage(message: string, headers: Headers, additionsHeaders?: string | undefined): Promise<boolean> {
     throw new Error('Method not implemented.');
   }
-  sendMessageWithAttachments(message: string, files: any[]): boolean {
+  sendMessageWithAttachments(message: string, headers: Headers, files: any[], additionsHeaders?: string | undefined): boolean {
     throw new Error('Method not implemented.');
   }
 
