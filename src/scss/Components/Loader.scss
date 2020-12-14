@@ -10,4 +10,8 @@ div.loader {
   z-index: 1000 !important;
   justify-content: center;
   align-items: center;
+
+  &.transparent {
+    background: #fff7;
+  }
 }

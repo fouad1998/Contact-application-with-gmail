@@ -17,22 +17,19 @@ declare global {
   }
 }
 
-window.gapi = window.gapi || {};
-
 export default function App() {
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [GoogleAuth, setGoogleAuth] = useState({});
+  const [GoogleAuth, setGoogleAuth] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   const LoadGoogleAuth = () => {
     ConnectGoogle()
       .then(() => {
-        const GoogleAuth = window.gapi.auth2.getAuthInstance();
-        GoogleAuth.isSignedIn.listen(updateSigninStatus);
+        GoogleAuth.isSignedIn.listen(updateSigningStatus);
         const status = GoogleAuth.isSignedIn.get();
         //@ts-ignore
-        updateSigninStatus(status);
+        updateSigningStatus(status);
         setGoogleAuth(GoogleAuth);
       })
       .catch(() => {
@@ -43,7 +40,7 @@ export default function App() {
 
   useEffect(LoadGoogleAuth, []);
 
-  function updateSigninStatus(isSignedIn: boolean) {
+  function updateSigningStatus(isSignedIn: boolean) {
     setLoading(false);
     if (isSignedIn) {
       setIsAuthorized(true);
@@ -55,17 +52,17 @@ export default function App() {
   return (
     <SnackbarProvider maxSnack={3}>
       <Layout style={{ height: '100vh', position: 'relative' }}>
-        {(loading || error) && (
-          <Row style={{ position: 'absolute', left: 0, top: 0, zIndex: 10 }}>
-            {loading && <Loader />}
-            {error && <ErrorLoading title="Error loading" actionTitle="Reload" actionFunction={LoadGoogleAuth} />}
-          </Row>
-        )}
         <Row className="home">
           <Col span={24} className="title">
             <h1>Contacts Application with Gmail</h1>
           </Col>
-          <Col span={24}>
+          <Col span={24} style={{ position: 'relative', height: 'calc(100vh - 80px)' }}>
+            {(loading || error) && (
+              <Row style={{ position: 'absolute', left: 0, top: 40, right: 0, bottom: 0, zIndex: 10 }}>
+                {loading && <Loader />}
+                {error && <ErrorLoading title="Error loading" actionTitle="Reload" actionFunction={LoadGoogleAuth} />}
+              </Row>
+            )}
             {/**@ts-ignore */}
             {isAuthorized && !loading && !error && <Gmail />}
             {/**@ts-ignore */}

@@ -1,6 +1,7 @@
-import { CircularProgress } from '@material-ui/core';
 import { Row, Col, Button } from 'antd';
 import React, { useCallback, useState } from 'react';
+import { getToken } from '../utils/outlook/GetToken';
+import { Loader } from './Loader/Loader';
 
 interface SigninInterface {
   signin: () => any;
@@ -28,7 +29,10 @@ const Signin: React.FC<SigninInterface> = (props) => {
           </Col>
           <Col span={24}>
             <Button onClick={signinClickHandler} className="google-signin" disabled={clicked}>
-              {loading && <CircularProgress color="inherit" size={14} style={{ marginRight: 10 }} />}Give gmail Access
+              {loading && <Loader transparent={true} />}Gmail
+            </Button>
+            <Button onClick={getToken} className="outlook-signin">
+              {loading && <Loader transparent={true} />}Outlook
             </Button>
           </Col>
         </Row>

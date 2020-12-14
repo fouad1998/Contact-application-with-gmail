@@ -1,17 +1,17 @@
 div.message-html {
-  & .subject {
+  div.subject {
     padding: 5px 0;
     margin-top: 5px;
     margin-bottom: 5px;
 
-    & h3 {
+    h3 {
       font-variant-caps: normal !important;
       border: none;
       font-weight: lighter !important;
     }
   }
 
-  .headers {
+  div.headers {
     position: relative;
     padding: 10px 0;
 
