@@ -1,7 +1,6 @@
 import GoogleManager from './GoogleManager/GoogleManager';
 import { ConnectionManagerConfig, ConnectionManagerProps } from './interface/ConnectionManager';
 import OutlookManager from './OutlookManager/OutlookManager';
-import { EmojiObjectsTwoTone } from '@material-ui/icons';
 
 export default class ConnectionManager {
   googleManager: GoogleManager;
@@ -37,6 +36,8 @@ export default class ConnectionManager {
     );
     this.isAuthorizedListener = props.isAuthorizedListener;
     this.authorizedServicesListener = props.authorizedServiceListener;
+    this.onLoad = props.onLoad
+    this.onFaild = props.onFaild
   }
 
   connect(which: 'google' | 'microsoft') {

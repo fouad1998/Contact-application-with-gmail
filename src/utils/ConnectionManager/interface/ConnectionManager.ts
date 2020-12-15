@@ -5,4 +5,6 @@ export interface ConnectionManagerConfig {
 export interface ConnectionManagerProps {
   isAuthorizedListener: (status: boolean) => void;
   authorizedServiceListener: (services: string[]) => void;
+  onLoad?: () => void
+  onFaild?: (reload: () => void) => void
 }

@@ -2,6 +2,7 @@ import { clientId } from '../../../config/gmail/config';
 import { loadAuth } from '../../gmail/LoadAuth';
 import { sendMail } from '../../gmail/SendMail';
 import Model from '../Model/Model';
+import { GmailHeaders } from '../../../interfaces/gmail/SendMail';
 
 export default class GoogleManager extends Model {
   private googleAuth: any = null;
@@ -66,9 +67,10 @@ export default class GoogleManager extends Model {
     }
   };
 
-  sendMessage(message: string, headers: Headers, additionsHeaders?: string | undefined): Promise<boolean> {
+  sendMessage(message: string, headers: GmailHeaders): Promise<boolean> {
+    const additionHeaders = 'Content-Type: text/plain; charset="UTF-8"\r\n';
     return new Promise(resolve => {
-      sendMail(message, headers, additionsHeaders)
+      sendMail(message, headers, additionHeaders)
         .then(() => {
           resolve(true);
         })
@@ -78,8 +80,34 @@ export default class GoogleManager extends Model {
     });
   }
 
-  sendMessageWithAttachments(message: string, headers: Headers, files: any[], additionsHeaders?: string | undefined): boolean {
-    throw new Error('Method not implemented.');
+  sendMessageWithAttachments(message: string, headers: GmailHeaders, files: any[]): Promise<boolean> {
+    const email = `--emplorium_boundary
+    
+    ${message}
+    ${files
+      .map(
+        file => `
+    
+    --emplorium_boundary
+    Content-Type: ${file.type}
+    Content-Transfer-Encoding: base64
+    Content-Disposition: attachment; filename="${file.filename}"
+    
+    ${file.content}
+    
+    `
+      )
+      .join('')}
+    
+    --emplorium_boundary--
+    `;
+
+    const additionHeaders = 'Content-Type: multipart/mixed; boundary="emplorium_boundary"\r\nMIME-Version: 1.0\r\n';
+    return new Promise(resolve =>
+      sendMail(email, headers, additionHeaders)
+        .then(e => resolve(true))
+        .catch(e => resolve(false))
+    );
   }
 
   private updateSigningStatus = (connected: boolean) => {

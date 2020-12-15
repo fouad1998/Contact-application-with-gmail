@@ -17,19 +17,43 @@ export interface IndexProps {}
 const Index: React.FC<IndexProps> = () => {
   const [isAuthorized, setAuthorized] = useState<boolean>(false);
   const [allowedServices, setAllowedServices] = useState<string[]>([]);
+  const [state, setState] = useState<{loading: boolean; error: boolean; reload: () => void}>({
+    loading: true, 
+    error: false,
+    reload: () => {}
+  })
 
   const isAuthorizedListener = (status: boolean) => setAuthorized(status);
   const authorizedServiceListener = (services: string[]) => setAllowedServices(services);
+  const onLoad  = () => 
+    setState({
+      loading: false, 
+      error: false,
+      reload: () => {}
+    })
+  
+  const onFaild = (reload: () => void) => 
+    setState({
+      loading: false, 
+      error: true,
+      reload,
+    })
+  
 
   const connectionManager = ConnectionManager.getInstance({
     isAuthorizedListener,
     authorizedServiceListener,
+    onFaild,
+    onLoad
   });
 
   const contextValues: ConnectionManagerContext = {
     isAuthorized,
     connectionManager,
     authorizedService: allowedServices,
+    loading: state.loading,
+    error: state.error,
+    reload: state.reload
   };
 
   return (

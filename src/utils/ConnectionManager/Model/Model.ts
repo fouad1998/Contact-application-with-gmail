@@ -1,3 +1,5 @@
+import { GmailHeaders } from '../../../interfaces/gmail/SendMail';
+
 export default abstract class Model {
   protected authListener: (status: boolean) => void;
   protected ready: boolean = false;
@@ -16,6 +18,6 @@ export default abstract class Model {
   abstract checkConnectionStatus(): Promise<boolean>;
   abstract connect(): void;
   abstract isConnected(): boolean;
-  abstract sendMessage(message: string, headers: Headers, additionsHeaders?: string): Promise<boolean>;
-  abstract sendMessageWithAttachments(message: string, headers: Headers, files: Array<any>, additionsHeaders?: string): boolean;
+  abstract sendMessage(message: string, headers: GmailHeaders): Promise<boolean>;
+  abstract sendMessageWithAttachments(message: string, headers: GmailHeaders, files: Array<any>): Promise<boolean>;
 }

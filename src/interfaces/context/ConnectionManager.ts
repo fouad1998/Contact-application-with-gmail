@@ -4,4 +4,7 @@ export interface ConnectionManagerContext {
   connectionManager: ConnectionManager
   isAuthorized: boolean
   authorizedService: string[]
+  loading: boolean
+  error: boolean
+  reload: () => void;
 }

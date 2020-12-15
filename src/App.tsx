@@ -1,22 +1,16 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useContext } from 'react';
 import { Layout, Row, Col } from 'antd';
 import Gmail from './components/Gmail';
 import Signin from './components/Signin';
 import { SnackbarProvider } from 'notistack';
 import 'antd/dist/antd.css';
-import './scss/home.scss';
-import './scss/signin.scss';
-import './scss/mailBoxInterface.scss';
-import { ConnectGoogle } from './utils/gmail/Connect';
+import './scss/app.scss';
 import { Loader } from './components/Loader/Loader';
 import ErrorLoading from './components/Error/ErrorLoading';
 import { connectionManagerContext } from './context/ConnectionManager';
 
 export default function App() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  const { isAuthorized } = useContext(connectionManagerContext);
+  const { isAuthorized, loading, error, reload } = useContext(connectionManagerContext);
 
   return (
     <SnackbarProvider maxSnack={3}>
@@ -29,12 +23,10 @@ export default function App() {
             {(loading || error) && (
               <Row style={{ position: 'absolute', left: 0, top: 40, right: 0, bottom: 0, zIndex: 10 }}>
                 {loading && <Loader />}
-                {error && <ErrorLoading title="Error loading" actionTitle="Reload" actionFunction={LoadGoogleAuth} />}
+                {error && <ErrorLoading title="Error loading" actionTitle="Reload" actionFunction={reload} />}
               </Row>
             )}
-            {/**@ts-ignore */}
             {isAuthorized && !loading && !error && <Gmail />}
-            {/**@ts-ignore */}
             {!isAuthorized && !loading && !error && <Signin />}
           </Col>
         </Row>

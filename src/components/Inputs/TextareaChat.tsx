@@ -35,29 +35,6 @@ export const TextAreaChat: React.FC<TextAreaInterface> = ({ onSubmit, to }) => {
         return void 0;
       } else if (code === '\n' || keyCode === 13) {
         event.preventDefault();
-        const header = filesContent.length
-          ? 'Content-Type: multipart/mixed; boundary="emplorium_boundary"\r\nMIME-Version: 1.0\r\n'
-          : 'Content-Type: text/plain; charset="UTF-8"\r\n';
-        const email = `${filesContent.length === 0 ? '' : '--emplorium_boundary\r\n'}${content}
-${filesContent
-  .map(
-    (file) => `
-
---emplorium_boundary
-Content-Type: ${file.type}
-Content-Transfer-Encoding: base64
-Content-Disposition: attachment; filename="${file.filename}"
-
-${file.content}
-
-
-`
-  )
-  .join('')}
-
-${filesContent.length === 0 ? '' : '--emplorium_boundary--'}
-`;
-        onSubmit(email, header);
         setContent('');
         setFilesContent([]);
       }
@@ -80,9 +57,9 @@ ${filesContent.length === 0 ? '' : '--emplorium_boundary--'}
         const { size, name, type, uid } = file;
         file
           .text()
-          .then((str) => {
+          .then(str => {
             console.log(str);
-            setFilesContent((state) => [...state, { size, type, filename: name, content: str, file, id: uid }]);
+            setFilesContent(state => [...state, { size, type, filename: name, content: str, file, id: uid }]);
           })
           .catch(() =>
             error({
@@ -98,7 +75,7 @@ ${filesContent.length === 0 ? '' : '--emplorium_boundary--'}
   );
 
   const onRemove = useCallback((uid: string) => {
-    setFilesContent((state) => state.filter((file) => file.id !== uid));
+    setFilesContent(state => state.filter(file => file.id !== uid));
   }, []);
 
   return (
@@ -111,7 +88,7 @@ ${filesContent.length === 0 ? '' : '--emplorium_boundary--'}
       <Col span={24}>
         <Row className="input-section">
           <Col span={4}>
-            <Upload beforeUpload={beforeUpload} fileList={filesContent.map((e) => e.file)} itemRender={() => void 0}>
+            <Upload beforeUpload={beforeUpload} fileList={filesContent.map(e => e.file)} itemRender={() => void 0}>
               <Button>
                 <Add />
               </Button>
