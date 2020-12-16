@@ -1,15 +1,12 @@
 export const getListEmailId = (
-  currentContact: string,
+  emails: string[],
   label: string,
-  emails: string[]
+  pageToken?: string,
 ): Promise<{ nextTokenPage: string; messagesId: string[] }> => {
   return new Promise((resolve, reject) => {
     // When the user select the ALL as current contact that means we have to send the mail
     // to all email that user has
-    const query =
-      currentContact === 'ALL'
-        ? emails.map((email) => `from:${email} OR to:${email}`).join(' OR ')
-        : `from:${currentContact} OR to:${currentContact}`;
+    const query = emails.map((email) => `from:${email} OR to:${email}`).join(' OR ')
 
     // Load Email list (emails id)
     window.gapi.client.gmail.users.messages
@@ -18,6 +15,7 @@ export const getListEmailId = (
         labelIds: label === 'ALL' ? void 0 : label,
         maxResults: 20,
         q: query,
+        nextTokenPage: pageToken,
       })
       .then((response: any) => {
         if (response.error === void 0) {

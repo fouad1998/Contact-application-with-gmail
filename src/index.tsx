@@ -44,7 +44,7 @@ const Index: React.FC<IndexProps> = () => {
     isAuthorizedListener,
     authorizedServiceListener,
     onFaild,
-    onLoad
+    onLoad,
   });
 
   const contextValues: ConnectionManagerContext = {

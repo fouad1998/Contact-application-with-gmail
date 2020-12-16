@@ -3,6 +3,9 @@ import { loadAuth } from '../../gmail/LoadAuth';
 import { sendMail } from '../../gmail/SendMail';
 import Model from '../Model/Model';
 import { GmailHeaders } from '../../../interfaces/gmail/SendMail';
+import { Messages } from '../interface/Messages';
+import { getListEmailId } from '../../gmail/ListEmailId';
+import { getEmailsContent } from '../../gmail/EmailContentFetch';
 
 export default class GoogleManager extends Model {
   private googleAuth: any = null;
@@ -85,8 +88,8 @@ export default class GoogleManager extends Model {
     
     ${message}
     ${files
-      .map(
-        file => `
+        .map(
+          file => `
     
     --emplorium_boundary
     Content-Type: ${file.type}
@@ -96,8 +99,8 @@ export default class GoogleManager extends Model {
     ${file.content}
     
     `
-      )
-      .join('')}
+        )
+        .join('')}
     
     --emplorium_boundary--
     `;
@@ -108,6 +111,28 @@ export default class GoogleManager extends Model {
         .then(e => resolve(true))
         .catch(e => resolve(false))
     );
+  }
+
+  getMessages(email: string[], label: string, pageToken?: string): Promise<Messages> {
+    return new Promise((resolve, reject) => {
+      getListEmailId(email, label, pageToken)
+        .then((response) => {
+          if (response.messagesId.length > 0) {
+            //FIXME: add the user mail here
+            getEmailsContent(response.messagesId, '').then((emailsContent) => {
+              const messages:Messages = {
+                nextTokenPage: response.nextTokenPage,
+                messages: [{  }]
+              }
+              resolve()
+            });
+          } else {
+            // no message in discussion
+            resolve({ nextTokenPage: "", messages: [] })
+          }
+        }
+        ).catch(reject)
+    })
   }
 
   private updateSigningStatus = (connected: boolean) => {

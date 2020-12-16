@@ -23,7 +23,7 @@ export default function App() {
             {(loading || error) && (
               <Row style={{ position: 'absolute', left: 0, top: 40, right: 0, bottom: 0, zIndex: 10 }}>
                 {loading && <Loader />}
-                {error && <ErrorLoading title="Error loading" actionTitle="Reload" actionFunction={reload} />}
+                {error && <ErrorLoading title="Error loading" actionTitle="Reload" actionFunction={reload as () => void} />}
               </Row>
             )}
             {isAuthorized && !loading && !error && <Gmail />}
