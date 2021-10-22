@@ -54,46 +54,46 @@ const Gmail: React.FC<GmailProps> = () => {
         setMessagesStatus((state) => ({ ...state, loading: true }));
         // Load Email List for specific query
         const loadEmailList = () => {
-          getListEmailId(state.currentContact, state.currentLabel, state.selectedContact.emails)
-            .then((response) => {
-              if (response.messagesId.length > 0) {
-                getEmailsContent(response.messagesId, state.userEmail).then((emailsContent) => {
-                  dispatch({
-                    type: GMAIL_REDUCER_TYPE.SET_MESSAGES,
-                    payload: {
-                      cache: [
-                        {
-                          email: state.selectedContact.emails,
-                          messages: emailsContent,
-                          nextPageToken: response.nextTokenPage,
-                        },
-                      ],
-                    },
-                  });
-                  setMessages(messages.map((e) => e.message).reverse());
-                  setMessagesStatus((state) => ({ ...state, loading: false }));
-                });
-              } else {
-                // no message in discussion
-                setMessages([]);
-                setMessagesStatus((state) => ({ ...state, loading: false }));
-              }
-            })
-            .catch(() => {
-              // show error message by using res.result.message
-              setMessagesStatus((state) => ({ ...state, loading: false }));
-              enqueueSnackbar(
-                <Row justify="space-between" align="middle">
-                  <Col>
-                    <Typography>Error loading the emails...</Typography>
-                  </Col>
-                  <Col>
-                    <Button onClick={loadEmailList}>Reload</Button>
-                  </Col>
-                </Row>,
-                { variant: 'error' }
-              );
-            });
+          // getListEmailId(state.currentContact, state.currentLabel, state.selectedContact.emails)
+          //   .then((response) => {
+          //     if (response.messagesId.length > 0) {
+          //       getEmailsContent(response.messagesId, state.userEmail).then((emailsContent) => {
+          //         dispatch({
+          //           type: GMAIL_REDUCER_TYPE.SET_MESSAGES,
+          //           payload: {
+          //             cache: [
+          //               {
+          //                 email: state.selectedContact.emails,
+          //                 messages: emailsContent,
+          //                 nextPageToken: response.nextTokenPage,
+          //               },
+          //             ],
+          //           },
+          //         });
+          //         setMessages(messages.map((e) => e.message).reverse());
+          //         setMessagesStatus((state) => ({ ...state, loading: false }));
+          //       });
+          //     } else {
+          //       // no message in discussion
+          //       setMessages([]);
+          //       setMessagesStatus((state) => ({ ...state, loading: false }));
+          //     }
+          //   })
+          //   .catch(() => {
+          //     // show error message by using res.result.message
+          //     setMessagesStatus((state) => ({ ...state, loading: false }));
+          //     enqueueSnackbar(
+          //       <Row justify="space-between" align="middle">
+          //         <Col>
+          //           <Typography>Error loading the emails...</Typography>
+          //         </Col>
+          //         <Col>
+          //           <Button onClick={loadEmailList}>Reload</Button>
+          //         </Col>
+          //       </Row>,
+          //       { variant: 'error' }
+          //     );
+          //   });
         };
 
         // Starts

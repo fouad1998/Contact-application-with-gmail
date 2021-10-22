@@ -1,18 +1,18 @@
-import GoogleManager from './GoogleManager/GoogleManager';
-import { ConnectionManagerConfig, ConnectionManagerProps } from './interface/ConnectionManager';
-import OutlookManager from './OutlookManager/OutlookManager';
+import GoogleManager from "./GoogleManager/GoogleManager";
+import { ConnectionManagerConfig, ConnectionManagerProps } from "./interface/ConnectionManager";
+import OutlookManager from "./OutlookManager/OutlookManager";
 
 export default class ConnectionManager {
-  googleManager: GoogleManager;
-  outlookManager: OutlookManager;
+  readonly googleManager: GoogleManager;
+  readonly outlookManager: OutlookManager;
   connectionStatus = { google: false, microsoft: false };
   loadSerives = { google: false, microsoft: false };
   services: string[] = [];
-  config: ConnectionManagerConfig = { selectedService: 'google' };
-  isAuthorizedListener: (status: boolean) => void;
-  authorizedServicesListener: (services: string[]) => void;
-  onLoad?: () => void;
-  onFaild?: (reloadFunc: () => void) => void;
+  config: ConnectionManagerConfig = { selectedService: "google" };
+  readonly isAuthorizedListener: (status: boolean) => void;
+  readonly authorizedServicesListener: (services: string[]) => void;
+  readonly onLoad?: () => void;
+  readonly onFaild?: (reloadFunc: () => void) => void;
 
   private static connectionManagerInstance: ConnectionManager | null = null;
 
@@ -27,25 +27,25 @@ export default class ConnectionManager {
 
   private constructor(props: ConnectionManagerProps) {
     this.googleManager = GoogleManager.getInstance(
-      status => this.updateSigninStatus(status, 'google'),
-      () => this.onLoadService('google')
+      (status) => this.updateSigninStatus(status, "google"),
+      () => this.onLoadService("google")
     );
     this.outlookManager = OutlookManager.getInstance(
-      status => this.updateSigninStatus(status, 'outlook'),
-      () => this.onLoadService('microsoft')
+      (status) => this.updateSigninStatus(status, "outlook"),
+      () => this.onLoadService("microsoft")
     );
     this.isAuthorizedListener = props.isAuthorizedListener;
     this.authorizedServicesListener = props.authorizedServiceListener;
-    this.onLoad = props.onLoad
-    this.onFaild = props.onFaild
+    this.onLoad = props.onLoad;
+    this.onFaild = props.onFaild;
   }
 
-  connect(which: 'google' | 'microsoft') {
+  connect(which: "google" | "microsoft") {
     switch (which) {
-      case 'google':
+      case "google":
         return this.googleManager.connect();
 
-      case 'microsoft':
+      case "microsoft":
         return this.outlookManager.connect();
 
       default:
@@ -53,12 +53,13 @@ export default class ConnectionManager {
     }
   }
 
-  private onLoadService(which: 'google' | 'microsoft') {
+  private onLoadService(which: "google" | "microsoft") {
+    console.log("Loaded service", which);
     switch (which) {
-      case 'google':
+      case "google":
         this.loadSerives.google = true;
         break;
-      case 'microsoft':
+      case "microsoft":
         this.loadSerives.microsoft = true;
         break;
 
@@ -72,21 +73,21 @@ export default class ConnectionManager {
     }
   }
 
-  private onFaildService(which: 'google' | 'microsoft', reload: () => void) {
+  private onFaildService(which: "google" | "microsoft", reload: () => void) {
     //TODO: Enhance this method
     this.onFaild && this.onFaild(reload);
   }
 
   private updateSigninStatus = (status: boolean, which: string) => {
     switch (which) {
-      case 'google':
+      case "google":
         this.connectionStatus.google = status;
-        this.updateAuthorizedServices('google', status);
+        this.updateAuthorizedServices("google", status);
         break;
 
-      case 'microsoft':
+      case "microsoft":
         this.connectionStatus.microsoft = status;
-        this.updateAuthorizedServices('microsoft', status);
+        this.updateAuthorizedServices("microsoft", status);
         break;
 
       default:
@@ -101,7 +102,7 @@ export default class ConnectionManager {
     if (status) {
       this.services.push(service);
     } else {
-      this.services = this.services.filter(value => value !== service);
+      this.services = this.services.filter((value) => value !== service);
     }
 
     this.authorizedServicesListener([...this.services]);

@@ -1,12 +1,22 @@
-import { GmailHeaders } from '../../../interfaces/gmail/SendMail';
-import { Messages } from '../interface/Messages';
+import { Contact } from "../../../interfaces/data/Contact";
+import { User } from "../../../interfaces/data/User";
+import { GmailHeaders } from "../../../interfaces/gmail/SendMail";
+import { Messages } from "../interface/Messages";
 
 export default abstract class Model {
-  protected authListener: (status: boolean) => void;
+  protected readonly authListener: (status: boolean) => void;
   protected ready: boolean = false;
   protected connected: boolean = false;
-  protected onLoad?: () => void;
-  protected onFaild?: () => void;
+  protected readonly onLoad?: () => void;
+  protected readonly onFaild?: () => void;
+  protected labels: string[] = [];
+  protected user: User = {
+    email: "Unknown",
+    imageURL: "Unknown",
+    lastname: "Unknown",
+    name: "Unknown",
+    username: "Unknown",
+  };
 
   constructor(authListener: (status: boolean) => void, onLoad?: () => void, onFaild?: () => void) {
     this.authListener = authListener;
@@ -17,9 +27,10 @@ export default abstract class Model {
   setConfig() {}
 
   abstract checkConnectionStatus(): Promise<boolean>;
-  abstract connect(): void;
+  abstract connect(): Promise<boolean>;
   abstract isConnected(): boolean;
+  abstract getContacts(): Promise<Contact>;
   abstract sendMessage(message: string, headers: GmailHeaders): Promise<boolean>;
   abstract sendMessageWithAttachments(message: string, headers: GmailHeaders, files: Array<any>): Promise<boolean>;
-  abstract getMessages(emails: string[], label: string, pageToken?: string): Promise<Messages>
+  abstract getMessages(emails: string[], label: string, pageToken?: string): Promise<Messages>;
 }

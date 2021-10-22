@@ -1,4 +1,4 @@
-.signin-container {
+div.signin-container {
   position: fixed;
   left: 0;
   top: 0;
@@ -9,11 +9,11 @@
   justify-content: center;
   align-items: center;
 
-  .signin {
+  div.signin {
     width: 40%;
-    max-width: 400px;
-    min-width: 200px;
-    min-height: 150px;
+    max-width: 600px;
+    min-width: 400px;
+    min-height: 250px;
     padding: 10px 20px;
     box-sizing: border-box;
     border-radius: 3px;
@@ -21,7 +21,7 @@
     display: flex;
     flex-flow: column nowrap;
 
-    .title {
+    div.title {
       font-size: medium;
       padding: 0 !important;
       margin: 10px 0 !important;
@@ -31,18 +31,34 @@
       border-bottom: none; //1px solid rgb(180, 180, 180);
     }
 
-    .google-signin {
-      background-color: rgb(187, 30, 30) !important;
+    button.signin {
       color: white;
       height: 40px;
       font-size: normal;
       font-variant-caps: all-petite-caps;
       border-radius: 3px;
       font-weight: bolder;
-      width: 100%;
+      width: 100% !important;
       display: flex;
       justify-content: space-evenly;
       align-items: center;
+      margin-bottom: 10px;
+
+      &.google {
+      background-color: rgb(187, 30, 30) !important;
+
+      }
+
+      &.microsoft {
+      background-color: rgb(62, 192, 224) !important;
+      }
+    }
+
+    div.powered {
+      font-size: medium;
+      font-variant-caps: all-small-caps;
+      padding: 10px 0;
+      text-align: center;
     }
   }
 }
